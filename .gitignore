@@ -1,0 +1,27 @@
+bin/
+*.exe
+*.exe~
+*.dll
+*.dll~
+*.so
+*.so~
+*.dylib
+*.dylib~
+*.log
+*.tmp
+*.test
+*.out
+vendor/
+
+go.work
+
+.env
+
+*.db
+
+uploads/
+
+# IDE specific files
+.vscode/
+.idea/
+*.iml
