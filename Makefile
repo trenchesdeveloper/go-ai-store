@@ -1,4 +1,4 @@
-.PHONY: help build run dev lint migrate-up migrate-down docker-up docker-down
+.PHONY: help build run dev lint migrate-up migrate-down migratecreate docker-up docker-down
 
 help:
 	@echo "Available targets:"
@@ -28,6 +28,9 @@ migrate-up:
 
 migrate-down:
 	migrate -path db/migrations -database "postgres://postgres:postgres@localhost:5432/ecommerce?sslmode=disable" down
+
+migratecreate:
+	migrate create -ext sql -dir db/migrations -seq $(name)
 
 docker-up:
 	docker compose -f docker/docker-compose.yml up -d
