@@ -1,4 +1,4 @@
-.PHONY: help build run dev lint migrate-up migrate-down migratecreate docker-up docker-down
+.PHONY: help build run dev lint fix migrate-up migrate-down migratecreate docker-up docker-down
 
 help:
 	@echo "Available targets:"
@@ -22,6 +22,9 @@ dev:
 
 lint:
 	golangci-lint run ./...
+
+fix:
+	golangci-lint run --fix ./...
 
 migrate-up:
 	migrate -path db/migrations -database "postgres://postgres:postgres@localhost:5432/ecommerce?sslmode=disable" up
