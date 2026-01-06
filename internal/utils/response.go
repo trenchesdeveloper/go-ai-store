@@ -6,12 +6,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
 type Response struct {
-	Data interface{} `json:"data,omitempty"`
-	Error string `json:"error,omitempty"`
-	Success bool `json:"success"`
-	Message string `json:"message,omitempty"`
+	Data    interface{} `json:"data,omitempty"`
+	Error   string      `json:"error,omitempty"`
+	Success bool        `json:"success"`
+	Message string      `json:"message,omitempty"`
 }
 
 type PaginatedResponse struct {
@@ -20,13 +19,13 @@ type PaginatedResponse struct {
 }
 
 type PaginationMeta struct {
-	Page int `json:"page"`
-	Limit int `json:"limit"`
+	Page       int `json:"page"`
+	Limit      int `json:"limit"`
 	TotalCount int `json:"total_count"`
 	TotalPages int `json:"total_pages"`
 }
 
-func SuccessResponse(c *gin.Context,message string, data interface{}) {
+func SuccessResponse(c *gin.Context, message string, data interface{}) {
 	c.JSON(http.StatusOK, Response{
 		Data:    data,
 		Success: true,
@@ -34,7 +33,7 @@ func SuccessResponse(c *gin.Context,message string, data interface{}) {
 	})
 }
 
-func CreatedResponse(c *gin.Context,message string, data interface{}) {
+func CreatedResponse(c *gin.Context, message string, data interface{}) {
 	c.JSON(http.StatusCreated, Response{
 		Data:    data,
 		Success: true,
@@ -42,10 +41,10 @@ func CreatedResponse(c *gin.Context,message string, data interface{}) {
 	})
 }
 
-func ErrorResponse(c *gin.Context,message string, statusCode int, err error) {
+func ErrorResponse(c *gin.Context, message string, statusCode int, err error) {
 	response := Response{
 		Success: false,
-		Error: message,
+		Error:   message,
 	}
 
 	if err != nil {
@@ -55,28 +54,27 @@ func ErrorResponse(c *gin.Context,message string, statusCode int, err error) {
 	c.JSON(statusCode, response)
 }
 
-
-func BadRequestResponse(c *gin.Context,message string, err error) {
+func BadRequestResponse(c *gin.Context, message string, err error) {
 	ErrorResponse(c, message, http.StatusBadRequest, err)
 }
 
-func NotFoundResponse(c *gin.Context,message string, err error) {
+func NotFoundResponse(c *gin.Context, message string, err error) {
 	ErrorResponse(c, message, http.StatusNotFound, err)
 }
 
-func ForbiddenResponse(c *gin.Context,message string, err error) {
+func ForbiddenResponse(c *gin.Context, message string, err error) {
 	ErrorResponse(c, message, http.StatusForbidden, err)
 }
 
-func UnauthorizedResponse(c *gin.Context,message string, err error) {
+func UnauthorizedResponse(c *gin.Context, message string, err error) {
 	ErrorResponse(c, message, http.StatusUnauthorized, err)
 }
 
-func InternalErrorResponse(c *gin.Context,message string, err error) {
+func InternalErrorResponse(c *gin.Context, message string, err error) {
 	ErrorResponse(c, message, http.StatusInternalServerError, err)
 }
 
-func PaginatedSuccessResponse(c *gin.Context,message string, data interface{}, meta PaginationMeta) {
+func PaginatedSuccessResponse(c *gin.Context, message string, data interface{}, meta PaginationMeta) {
 	c.JSON(http.StatusOK, PaginatedResponse{
 		Response: Response{
 			Data:    data,
