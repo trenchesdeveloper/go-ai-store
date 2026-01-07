@@ -33,6 +33,16 @@ func (s *Server) SetupRoutes() *gin.Engine {
 
 	// Setup routes
 	router.GET("/health", s.healthCheckHandler)
+	api := router.Group("/api")
+	{
+		auth := api.Group("/auth")
+		{
+			auth.POST("/register", s.registerHandler)
+			auth.POST("/login", s.loginHandler)
+			auth.POST("/refresh-token", s.refreshTokenHandler)
+			auth.POST("/logout", s.logoutHandler)
+		}
+	}
 
 	return router
 }

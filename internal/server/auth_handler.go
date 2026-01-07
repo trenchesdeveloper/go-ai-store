@@ -25,7 +25,6 @@ func (s *Server) registerHandler(c *gin.Context) {
 
 	// send response
 	utils.CreatedResponse(c, "User registered successfully", resp)
-
 }
 
 func (s *Server) loginHandler(c *gin.Context) {
@@ -46,7 +45,6 @@ func (s *Server) loginHandler(c *gin.Context) {
 
 	// send response
 	utils.SuccessResponse(c, "User logged in successfully", resp)
-
 }
 
 func (s *Server) refreshTokenHandler(c *gin.Context) {
@@ -68,7 +66,6 @@ func (s *Server) refreshTokenHandler(c *gin.Context) {
 	// send response
 	utils.SuccessResponse(c, "Token refreshed successfully", resp)
 }
-
 
 func (s *Server) logoutHandler(c *gin.Context) {
 	var req dto.RefreshTokenRequest

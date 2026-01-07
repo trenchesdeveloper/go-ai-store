@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"math"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -69,7 +70,7 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest) (dto.Auth
 	// check if user exist
 	user, err := s.db.GetUserByEmail(ctx, req.Email)
 	if err != nil {
-		return dto.AuthResponse{}, errors.New("Invalid email or password")
+		return dto.AuthResponse{}, errors.New("invalid email or password")
 	}
 
 	// check if the user is active
@@ -79,7 +80,7 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest) (dto.Auth
 
 	// check password
 	if err := utils.VerifyPassword(user.Password, req.Password); err != nil {
-		return dto.AuthResponse{}, errors.New("Invalid email or password")
+		return dto.AuthResponse{}, errors.New("invalid email or password")
 	}
 
 	// call generateAuthResponse function
@@ -90,28 +91,31 @@ func (s *AuthService) RefreshToken(ctx context.Context, req dto.RefreshTokenRequ
 	// validate refresh token
 	claims, err := utils.ValidateToken(req.RefreshToken, s.cfg.JWT.Secret)
 	if err != nil {
-		return dto.AuthResponse{}, errors.New("Invalid refresh token")
+		return dto.AuthResponse{}, errors.New("invalid refresh token")
 	}
 	// check if refresh token exist
 	refreshToken, err := s.db.GetRefreshToken(ctx, req.RefreshToken)
 	if err != nil {
-		return dto.AuthResponse{}, errors.New("Invalid refresh token")
+		return dto.AuthResponse{}, errors.New("invalid refresh token")
 	}
 
 	// check if the refresh token is expired
 	if refreshToken.ExpiresAt.Time.Before(time.Now()) {
-		return dto.AuthResponse{}, errors.New("Invalid refresh token")
+		return dto.AuthResponse{}, errors.New("invalid refresh token")
 	}
 
 	// check if the refresh token is valid
 	if refreshToken.Token != req.RefreshToken {
-		return dto.AuthResponse{}, errors.New("Invalid refresh token")
+		return dto.AuthResponse{}, errors.New("invalid refresh token")
 	}
 
 	// find user
-	user, err := s.db.GetUserByID(ctx, int32(claims.UserID))
+	if claims.UserID > math.MaxInt32 {
+		return dto.AuthResponse{}, errors.New("invalid user ID")
+	}
+	user, err := s.db.GetUserByID(ctx, int32(claims.UserID)) //#nosec G115 -- bounds checked above
 	if err != nil {
-		return dto.AuthResponse{}, errors.New("User not found")
+		return dto.AuthResponse{}, errors.New("user not found")
 	}
 
 	// check if the user is active
@@ -140,7 +144,10 @@ func (s *AuthService) Logout(ctx context.Context, refreshToken string) error {
 
 func (s *AuthService) generateAuthResponse(ctx context.Context, user *db.User) (dto.AuthResponse, error) {
 	// generate tokens
-	accessToken, refreshToken, err := utils.GenerateTokenPair(s.cfg, uint(user.ID), user.Email, string(user.Role.UserRole))
+	if user.ID < 0 {
+		return dto.AuthResponse{}, errors.New("invalid user ID")
+	}
+	accessToken, refreshToken, err := utils.GenerateTokenPair(s.cfg, uint(user.ID), user.Email, string(user.Role.UserRole)) //#nosec G115 -- bounds checked above
 	if err != nil {
 		return dto.AuthResponse{}, err
 	}
@@ -149,7 +156,7 @@ func (s *AuthService) generateAuthResponse(ctx context.Context, user *db.User) (
 	_, err = s.db.CreateRefreshToken(ctx, db.CreateRefreshTokenParams{
 		UserID:    user.ID,
 		Token:     refreshToken,
-		ExpiresAt: pgtype.Timestamptz{Time: time.Now().Add(time.Duration(s.cfg.JWT.RefreshTokenExpiresIn) * time.Hour), Valid: true},
+		ExpiresAt: pgtype.Timestamptz{Time: time.Now().Add(s.cfg.JWT.RefreshTokenExpiresIn * time.Hour), Valid: true},
 	})
 	if err != nil {
 		return dto.AuthResponse{}, err
