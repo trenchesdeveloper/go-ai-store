@@ -33,7 +33,7 @@ func (s *Server) SetupRoutes() *gin.Engine {
 
 	// Setup routes
 	router.GET("/health", s.healthCheckHandler)
-	api := router.Group("/api")
+	api := router.Group("/api/v1")
 	{
 		auth := api.Group("/auth")
 		{

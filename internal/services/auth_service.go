@@ -156,13 +156,22 @@ func (s *AuthService) generateAuthResponse(ctx context.Context, user *db.User) (
 	_, err = s.db.CreateRefreshToken(ctx, db.CreateRefreshTokenParams{
 		UserID:    user.ID,
 		Token:     refreshToken,
-		ExpiresAt: pgtype.Timestamptz{Time: time.Now().Add(s.cfg.JWT.RefreshTokenExpiresIn * time.Hour), Valid: true},
+		ExpiresAt: pgtype.Timestamptz{Time: time.Now().Add(s.cfg.JWT.RefreshTokenExpiresIn), Valid: true},
 	})
 	if err != nil {
 		return dto.AuthResponse{}, err
 	}
 
 	return dto.AuthResponse{
+		User: dto.UserResponse{
+			ID:        int64(user.ID),
+			Email:     user.Email,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+			Phone:     user.Phone.String,
+			Role:      string(user.Role.UserRole),
+			IsActive:  user.IsActive.Bool,
+		},
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil
