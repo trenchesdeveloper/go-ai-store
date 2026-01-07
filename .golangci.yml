@@ -1,0 +1,107 @@
+# golangci-lint v2 configuration for go-ai-store
+# https://golangci-lint.run/usage/configuration/
+
+version: "2"
+
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+output:
+  formats:
+    text:
+      path: stdout
+      color: true
+  sort-order:
+    - linter
+    - file
+
+linters:
+  default: standard
+  enable:
+    # Additional recommended linters
+    - bodyclose      # Check HTTP response body is closed
+    - dogsled        # Check for too many blank identifiers
+    - dupl           # Code clone detection
+    - errname        # Check error names follow conventions
+    - errorlint      # Find code that could cause issues with Go 1.13+ error wrapping
+    - exhaustive     # Check exhaustiveness of enum switch statements
+    - copyloopvar    # Detect loop variable copy issues
+    - gochecknoinits # Check for init functions
+    - goconst        # Find repeated strings that could be constants
+    - gocritic       # Provides diagnostics for bugs and style
+    - goprintffuncname # Check printf-like function names end with f
+    - gosec          # Security checks
+    - misspell       # Find common misspellings
+    - nakedret       # Find naked returns in large functions
+    - nilerr         # Find code returning nil after checking error
+    - nilnil         # Check for returning nil, nil
+    - noctx          # Find HTTP requests without context.Context
+    - prealloc       # Suggest preallocating slices
+    - predeclared    # Find shadowing of predeclared identifiers
+    - rowserrcheck   # Check sql.Rows.Err() is checked
+    - sqlclosecheck  # Check SQL rows/statements are closed
+    - tparallel      # Detect incorrect usage of t.Parallel()
+    - unconvert      # Remove unnecessary type conversions
+    - unparam        # Find unused function parameters
+    - wastedassign   # Find wasted assignment statements
+    - whitespace     # Detect unnecessary whitespace
+
+formatters:
+  enable:
+    - goimports      # Check imports are sorted/organized
+    - gofmt          # Enforce standard formatting
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+  govet:
+    enable-all: true
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+    disabled-checks:
+      - whyNoLint
+
+  goimports:
+    local-prefixes:
+      - github.com/samuelopeyemi/go-ai-store
+
+  gosec:
+    excludes:
+      - G104 # Audit errors not checked (handled by errcheck)
+
+  nakedret:
+    max-func-lines: 30
+
+  dupl:
+    threshold: 150
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - dupl
+        - errcheck
+        - gosec
+
+    # Exclude generated files (sqlc, etc.)
+    - path: db/sqlc/
+      linters:
+        - dupl
+        - gocritic
+
+    # Allow init functions in main packages
+    - path: cmd/
+      linters:
+        - gochecknoinits
