@@ -1,4 +1,4 @@
-.PHONY: help build run dev lint fix migrate-up migrate-down migratecreate docker-up docker-down
+.PHONY: help build run dev lint fix migrate-up migrate-down migratecreate docker-up docker-down sqlc
 
 help:
 	@echo "Available targets:"
@@ -10,6 +10,7 @@ help:
 	@echo "  migrate-down    Rollback database migrations"
 	@echo "  docker-up    Start docker containers"
 	@echo "  docker-down    Stop docker containers"
+	@echo "  sqlc    Generate database queries"
 
 build:
 	go build -o bin/api cmd/api/main.go
@@ -40,3 +41,6 @@ docker-up:
 
 docker-down:
 	docker compose -f docker/docker-compose.yml down
+
+sqlc:
+	sqlc generate
