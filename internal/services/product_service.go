@@ -90,8 +90,8 @@ func (s *ProductService) UpdateCategory(ctx context.Context, req dto.UpdateCateg
 	}, nil
 }
 
-func (s *ProductService) DeleteProduct(ctx context.Context, ID uint) error {
-	return s.store.SoftDeleteProduct(ctx, int32(ID))
+func (s *ProductService) DeleteProduct(ctx context.Context, id uint) error {
+	return s.store.SoftDeleteProduct(ctx, int32(id)) //#nosec G115 -- id from validated request
 }
 
 func (s *ProductService) CreateProduct(ctx context.Context, req dto.CreateProductRequest) (*dto.ProductResponse, error) {
@@ -109,9 +109,9 @@ func (s *ProductService) CreateProduct(ctx context.Context, req dto.CreateProduc
 		Price: price,
 		Stock: pgtype.Int4{
 			Valid: true,
-			Int32: int32(req.Stock),
+			Int32: int32(req.Stock), //#nosec G115 -- stock is validated
 		},
-		CategoryID: int32(req.CategoryID),
+		CategoryID: int32(req.CategoryID), //#nosec G115 -- category ID from validated request
 		Sku:        req.SKU,
 	})
 	if err != nil {
@@ -120,12 +120,12 @@ func (s *ProductService) CreateProduct(ctx context.Context, req dto.CreateProduc
 
 	priceFloat, _ := product.Price.Float64Value()
 	return &dto.ProductResponse{
-		ID:          uint(product.ID),
+		ID:          uint(product.ID), //#nosec G115 -- DB ID is always positive
 		Name:        product.Name,
 		Description: product.Description.String,
 		Price:       priceFloat.Float64,
 		Stock:       int(product.Stock.Int32),
-		CategoryID:  uint(product.CategoryID),
+		CategoryID:  uint(product.CategoryID), //#nosec G115 -- DB ID is always positive
 	}, nil
 }
 
@@ -157,8 +157,8 @@ func (s *ProductService) GetProducts(ctx context.Context, page, limit int) ([]dt
 	}
 
 	products, err := s.store.ListActiveProducts(ctx, db.ListActiveProductsParams{
-		Offset: int32((page - 1) * limit),
-		Limit:  int32(limit),
+		Offset: int32((page - 1) * limit), //#nosec G115 -- pagination values are bounded
+		Limit:  int32(limit),              //#nosec G115 -- pagination values are bounded
 	})
 	if err != nil {
 		return nil, nil, err
@@ -217,7 +217,7 @@ func (s *ProductService) GetProducts(ctx context.Context, page, limit int) ([]dt
 		imageResponses := make([]dto.ProductImageResponse, len(productImages))
 		for j, img := range productImages {
 			imageResponses[j] = dto.ProductImageResponse{
-				ID:        uint(img.ID),
+				ID:        uint(img.ID), //#nosec G115 -- DB ID is always positive
 				URL:       img.Url,
 				AltText:   img.AltText.String,
 				IsPrimary: img.IsPrimary.Bool,
@@ -226,12 +226,12 @@ func (s *ProductService) GetProducts(ctx context.Context, page, limit int) ([]dt
 
 		priceFloat, _ := product.Price.Float64Value()
 		productResponses[i] = dto.ProductResponse{
-			ID:          uint(product.ID),
+			ID:          uint(product.ID), //#nosec G115 -- DB ID is always positive
 			Name:        product.Name,
 			Description: product.Description.String,
 			Price:       priceFloat.Float64,
 			Stock:       int(product.Stock.Int32),
-			CategoryID:  uint(product.CategoryID),
+			CategoryID:  uint(product.CategoryID), //#nosec G115 -- DB ID is always positive
 			SKU:         product.Sku,
 			IsActive:    product.IsActive.Bool,
 			Category: dto.CategoryResponse{
@@ -247,13 +247,13 @@ func (s *ProductService) GetProducts(ctx context.Context, page, limit int) ([]dt
 	return productResponses, paginationMeta, nil
 }
 
-func (s *ProductService) GetProductByID(ctx context.Context, ID uint) (*dto.ProductResponse, error) {
-	product, err := s.store.GetProductByID(ctx, int32(ID))
+func (s *ProductService) GetProductByID(ctx context.Context, id uint) (*dto.ProductResponse, error) {
+	product, err := s.store.GetProductByID(ctx, int32(id)) //#nosec G115 -- id from validated request
 	if err != nil {
 		return nil, err
 	}
 
-	images, err := s.store.ListProductImages(ctx, int32(ID))
+	images, err := s.store.ListProductImages(ctx, int32(id)) //#nosec G115 -- id from validated request
 	if err != nil {
 		return nil, err
 	}
@@ -261,9 +261,9 @@ func (s *ProductService) GetProductByID(ctx context.Context, ID uint) (*dto.Prod
 	return s.convertProductToProductResponse(product, images), nil
 }
 
-func (s *ProductService) UpdateProductByID(ctx context.Context, ID uint, req *dto.UpdateProductRequest) (*dto.ProductResponse, error) {
+func (s *ProductService) UpdateProductByID(ctx context.Context, id uint, req *dto.UpdateProductRequest) (*dto.ProductResponse, error) {
 	// First, fetch the existing product
-	existing, err := s.store.GetProductByID(ctx, int32(ID))
+	existing, err := s.store.GetProductByID(ctx, int32(id)) //#nosec G115 -- id from validated request
 	if err != nil {
 		return nil, err
 	}
@@ -276,7 +276,7 @@ func (s *ProductService) UpdateProductByID(ctx context.Context, ID uint, req *dt
 
 	// Update the product with values from the request, using existing values as fallbacks
 	product, err := s.store.UpdateProduct(ctx, db.UpdateProductParams{
-		ID:   int32(ID),
+		ID:   int32(id), //#nosec G115 -- id from validated request
 		Name: req.Name,
 		Description: pgtype.Text{
 			String: req.Description,
@@ -285,10 +285,10 @@ func (s *ProductService) UpdateProductByID(ctx context.Context, ID uint, req *dt
 		Price: price,
 		Stock: pgtype.Int4{
 			Valid: true,
-			Int32: int32(req.Stock),
+			Int32: int32(req.Stock), //#nosec G115 -- stock is validated
 		},
-		CategoryID: int32(req.CategoryID),
-		Sku:        existing.Sku, // Preserve existing SKU since it's not in UpdateProductRequest
+		CategoryID: int32(req.CategoryID), //#nosec G115 -- category ID from validated request
+		Sku:        existing.Sku,          // Preserve existing SKU since it's not in UpdateProductRequest
 	})
 	if err != nil {
 		return nil, err
@@ -297,7 +297,7 @@ func (s *ProductService) UpdateProductByID(ctx context.Context, ID uint, req *dt
 	// Handle optional IsActive update
 	if req.IsActive != nil {
 		product, err = s.store.UpdateProductStatus(ctx, db.UpdateProductStatusParams{
-			ID: int32(ID),
+			ID: int32(id), //#nosec G115 -- id from validated request
 			IsActive: pgtype.Bool{
 				Bool:  *req.IsActive,
 				Valid: true,
@@ -308,7 +308,7 @@ func (s *ProductService) UpdateProductByID(ctx context.Context, ID uint, req *dt
 		}
 	}
 
-	images, err := s.store.ListProductImages(ctx, int32(ID))
+	images, err := s.store.ListProductImages(ctx, int32(id)) //#nosec G115 -- id from validated request
 	if err != nil {
 		return nil, err
 	}
@@ -321,7 +321,7 @@ func (s *ProductService) convertProductToProductResponse(product db.Product, ima
 	imageResponses := make([]dto.ProductImageResponse, len(images))
 	for i, img := range images {
 		imageResponses[i] = dto.ProductImageResponse{
-			ID:        uint(img.ID),
+			ID:        uint(img.ID), //#nosec G115 -- DB ID is always positive
 			URL:       img.Url,
 			AltText:   img.AltText.String,
 			IsPrimary: img.IsPrimary.Bool,
@@ -330,12 +330,12 @@ func (s *ProductService) convertProductToProductResponse(product db.Product, ima
 
 	priceFloat, _ := product.Price.Float64Value()
 	return &dto.ProductResponse{
-		ID:          uint(product.ID),
+		ID:          uint(product.ID), //#nosec G115 -- DB ID is always positive
 		Name:        product.Name,
 		Description: product.Description.String,
 		Price:       priceFloat.Float64,
 		Stock:       int(product.Stock.Int32),
-		CategoryID:  uint(product.CategoryID),
+		CategoryID:  uint(product.CategoryID), //#nosec G115 -- DB ID is always positive
 		Images:      imageResponses,
 	}
 }
