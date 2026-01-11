@@ -37,3 +37,7 @@ WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: CountCategories :one
 SELECT COUNT(*) FROM categories WHERE deleted_at IS NULL;
+
+-- name: GetCategoriesByIDs :many
+SELECT * FROM categories
+WHERE id = ANY($1::int[]) AND deleted_at IS NULL;

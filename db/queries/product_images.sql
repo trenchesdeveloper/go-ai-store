@@ -36,3 +36,8 @@ WHERE id = $1 AND deleted_at IS NULL;
 UPDATE product_images
 SET deleted_at = CURRENT_TIMESTAMP
 WHERE product_id = $1 AND deleted_at IS NULL;
+
+-- name: ListProductImagesByProductIDs :many
+SELECT * FROM product_images
+WHERE product_id = ANY($1::int[]) AND deleted_at IS NULL
+ORDER BY product_id, is_primary DESC, created_at ASC;

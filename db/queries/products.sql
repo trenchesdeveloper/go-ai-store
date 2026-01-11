@@ -57,3 +57,6 @@ SELECT COUNT(*) FROM products WHERE deleted_at IS NULL;
 
 -- name: CountProductsByCategory :one
 SELECT COUNT(*) FROM products WHERE category_id = $1 AND deleted_at IS NULL;
+
+-- name: CountActiveProducts :one
+SELECT COUNT(*) FROM products WHERE is_active = true AND deleted_at IS NULL;

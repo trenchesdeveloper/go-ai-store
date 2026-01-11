@@ -48,6 +48,39 @@ func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) 
 	return i, err
 }
 
+const getCategoriesByIDs = `-- name: GetCategoriesByIDs :many
+SELECT id, name, description, is_active, created_at, updated_at, deleted_at FROM categories
+WHERE id = ANY($1::int[]) AND deleted_at IS NULL
+`
+
+func (q *Queries) GetCategoriesByIDs(ctx context.Context, dollar_1 []int32) ([]Category, error) {
+	rows, err := q.db.Query(ctx, getCategoriesByIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Category{}
+	for rows.Next() {
+		var i Category
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCategoryByID = `-- name: GetCategoryByID :one
 SELECT id, name, description, is_active, created_at, updated_at, deleted_at FROM categories
 WHERE id = $1 AND deleted_at IS NULL

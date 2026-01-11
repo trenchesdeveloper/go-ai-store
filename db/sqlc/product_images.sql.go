@@ -118,6 +118,40 @@ func (q *Queries) ListProductImages(ctx context.Context, productID int32) ([]Pro
 	return items, nil
 }
 
+const listProductImagesByProductIDs = `-- name: ListProductImagesByProductIDs :many
+SELECT id, product_id, url, alt_text, is_primary, created_at, deleted_at FROM product_images
+WHERE product_id = ANY($1::int[]) AND deleted_at IS NULL
+ORDER BY product_id, is_primary DESC, created_at ASC
+`
+
+func (q *Queries) ListProductImagesByProductIDs(ctx context.Context, dollar_1 []int32) ([]ProductImage, error) {
+	rows, err := q.db.Query(ctx, listProductImagesByProductIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ProductImage{}
+	for rows.Next() {
+		var i ProductImage
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProductID,
+			&i.Url,
+			&i.AltText,
+			&i.IsPrimary,
+			&i.CreatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setPrimaryProductImage = `-- name: SetPrimaryProductImage :exec
 UPDATE product_images
 SET is_primary = CASE WHEN id = $2 THEN true ELSE false END

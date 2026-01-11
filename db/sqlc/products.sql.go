@@ -11,6 +11,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countActiveProducts = `-- name: CountActiveProducts :one
+SELECT COUNT(*) FROM products WHERE is_active = true AND deleted_at IS NULL
+`
+
+func (q *Queries) CountActiveProducts(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countActiveProducts)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countProducts = `-- name: CountProducts :one
 SELECT COUNT(*) FROM products WHERE deleted_at IS NULL
 `

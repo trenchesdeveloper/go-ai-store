@@ -11,6 +11,7 @@ import (
 )
 
 type Querier interface {
+	CountActiveProducts(ctx context.Context) (int64, error)
 	CountCartItems(ctx context.Context, cartID int32) (int64, error)
 	CountCategories(ctx context.Context) (int64, error)
 	CountOrderItems(ctx context.Context, orderID int32) (int64, error)
@@ -36,6 +37,7 @@ type Querier interface {
 	GetCartByUserID(ctx context.Context, userID int32) (Cart, error)
 	GetCartItem(ctx context.Context, arg GetCartItemParams) (CartItem, error)
 	GetCartItemByID(ctx context.Context, id int32) (CartItem, error)
+	GetCategoriesByIDs(ctx context.Context, dollar_1 []int32) ([]Category, error)
 	GetCategoryByID(ctx context.Context, id int32) (Category, error)
 	GetOrderByID(ctx context.Context, id int32) (Order, error)
 	GetOrderItemByID(ctx context.Context, id int32) (OrderItem, error)
@@ -57,6 +59,7 @@ type Querier interface {
 	ListOrdersByStatus(ctx context.Context, arg ListOrdersByStatusParams) ([]Order, error)
 	ListOrdersByUserID(ctx context.Context, arg ListOrdersByUserIDParams) ([]Order, error)
 	ListProductImages(ctx context.Context, productID int32) ([]ProductImage, error)
+	ListProductImagesByProductIDs(ctx context.Context, dollar_1 []int32) ([]ProductImage, error)
 	ListProducts(ctx context.Context, arg ListProductsParams) ([]Product, error)
 	ListProductsByCategory(ctx context.Context, arg ListProductsByCategoryParams) ([]Product, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
