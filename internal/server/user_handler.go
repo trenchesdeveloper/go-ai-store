@@ -18,9 +18,7 @@ func (s *Server) GetProfile(ctx *gin.Context) {
 	}
 
 	utils.SuccessResponse(ctx, "User profile retrieved successfully", user)
-
 }
-
 
 func (s *Server) UpdateProfile(ctx *gin.Context) {
 	userID := ctx.GetUint("user_id")

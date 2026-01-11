@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"errors"
+	"math"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/trenchesdeveloper/go-ai-store/db/sqlc"
@@ -16,9 +18,11 @@ func NewUserService(store db.Store) *UserService {
 	return &UserService{store: store}
 }
 
-
 func (s *UserService) GetProfile(ctx context.Context, userID uint) (*dto.UserResponse, error) {
-	user, err := s.store.GetUserByID(ctx, int32(userID))
+	if userID > math.MaxInt32 {
+		return nil, errors.New("invalid user ID")
+	}
+	user, err := s.store.GetUserByID(ctx, int32(userID)) //#nosec G115 -- bounds checked above
 	if err != nil {
 		return nil, err
 	}
@@ -33,9 +37,11 @@ func (s *UserService) GetProfile(ctx context.Context, userID uint) (*dto.UserRes
 	}, nil
 }
 
-
 func (s *UserService) UpdateProfile(ctx context.Context, userID uint, req dto.UpdateProfileRequest) (*dto.UserResponse, error) {
-	user, err := s.store.GetUserByID(ctx, int32(userID))
+	if userID > math.MaxInt32 {
+		return nil, errors.New("invalid user ID")
+	}
+	user, err := s.store.GetUserByID(ctx, int32(userID)) //#nosec G115 -- bounds checked above
 	if err != nil {
 		return nil, err
 	}
