@@ -155,7 +155,7 @@ func (q *Queries) SoftDeleteCategory(ctx context.Context, id int32) error {
 
 const updateCategory = `-- name: UpdateCategory :one
 UPDATE categories
-SET name = $2, description = $3, updated_at = CURRENT_TIMESTAMP
+SET name = $2, description = $3, is_active = $4, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING id, name, description, is_active, created_at, updated_at, deleted_at
 `
@@ -164,10 +164,16 @@ type UpdateCategoryParams struct {
 	ID          int32       `json:"id"`
 	Name        string      `json:"name"`
 	Description pgtype.Text `json:"description"`
+	IsActive    pgtype.Bool `json:"is_active"`
 }
 
 func (q *Queries) UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error) {
-	row := q.db.QueryRow(ctx, updateCategory, arg.ID, arg.Name, arg.Description)
+	row := q.db.QueryRow(ctx, updateCategory,
+		arg.ID,
+		arg.Name,
+		arg.Description,
+		arg.IsActive,
+	)
 	var i Category
 	err := row.Scan(
 		&i.ID,
