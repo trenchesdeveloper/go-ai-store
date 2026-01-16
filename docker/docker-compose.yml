@@ -25,6 +25,16 @@ services:
       - localstack_data:/var/lib/localstack
       - ./init/aws/init-localstack.sh:/etc/localstack/init/ready.d/init.sh
 
+
+  cdn:
+    image: nginx:alpine
+    container_name: cdn
+    ports:
+      - "8081:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ../uploads:/var/www/uploads
+
 volumes:
   postgres_data:
   localstack_data:

@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/trenchesdeveloper/go-ai-store/internal/interfaces"
 )
 
@@ -27,7 +28,9 @@ func (s *UploadService) UploadProductImage(productID uint, file *multipart.FileH
 		return "", fmt.Errorf("invalid image format: %s", ext)
 	}
 
-	path := fmt.Sprintf("products/%d%s", productID, file.Filename)
+	newFileName := uuid.New().String()
+
+	path := fmt.Sprintf("products/%d/%s%s", productID, newFileName, ext)
 
 	return s.provider.UploadFile(file, path)
 }
