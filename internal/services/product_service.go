@@ -90,8 +90,8 @@ func (s *ProductService) UpdateCategory(ctx context.Context, req dto.UpdateCateg
 	}, nil
 }
 
-func (s *ProductService) DeleteProduct(ctx context.Context, id uint) error {
-	return s.store.SoftDeleteProduct(ctx, int32(id)) //#nosec G115 -- id from validated request
+func (s *ProductService) DeleteCategory(ctx context.Context, id uint) error {
+	return s.store.SoftDeleteCategory(ctx, int32(id)) //#nosec G115 -- id from validated request
 }
 
 func (s *ProductService) CreateProduct(ctx context.Context, req dto.CreateProductRequest) (*dto.ProductResponse, error) {
@@ -314,6 +314,10 @@ func (s *ProductService) UpdateProductByID(ctx context.Context, id uint, req *dt
 	}
 
 	return s.convertProductToProductResponse(product, images), nil
+}
+
+func (s *ProductService) DeleteProductByID(ctx context.Context, id uint) error {
+	return s.store.SoftDeleteProduct(ctx, int32(id)) //#nosec G115 -- id from validated request
 }
 
 func (s *ProductService) convertProductToProductResponse(product db.Product, images []db.ProductImage) *dto.ProductResponse {
