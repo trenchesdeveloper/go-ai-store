@@ -1,10 +1,10 @@
 package services
 
 import (
-	"slices"
 	"fmt"
 	"mime/multipart"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/trenchesdeveloper/go-ai-store/internal/interfaces"

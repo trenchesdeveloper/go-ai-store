@@ -173,3 +173,36 @@ func (s *Server) DeleteProductByID(ctx *gin.Context) {
 
 	utils.SuccessResponse(ctx, "Product deleted successfully", nil)
 }
+
+func (s *Server) UploadProductImage(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		utils.BadRequestResponse(ctx, "Invalid product ID", err)
+		return
+	}
+
+	file, err := ctx.FormFile("image")
+	if err != nil {
+		utils.BadRequestResponse(ctx, "Invalid file", err)
+		return
+	}
+
+	imagePath, err := s.uploadService.UploadProductImage(
+		uint(id),
+		file,
+	)
+	if err != nil {
+		utils.InternalErrorResponse(ctx, "Failed to upload product image", err)
+		return
+	}
+
+	// Update product image path in database
+	err = s.productService.UpdateProductImage(ctx, uint(id), imagePath, file.Filename)
+	if err != nil {
+		utils.InternalErrorResponse(ctx, "Failed to update product image", err)
+		return
+	}
+
+	utils.SuccessResponse(ctx, "Product image uploaded successfully", imagePath)
+}

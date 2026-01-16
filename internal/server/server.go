@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog"
 	db "github.com/trenchesdeveloper/go-ai-store/db/sqlc"
 	"github.com/trenchesdeveloper/go-ai-store/internal/config"
+	"github.com/trenchesdeveloper/go-ai-store/internal/providers"
 	"github.com/trenchesdeveloper/go-ai-store/internal/services"
 )
 
@@ -17,9 +18,11 @@ type Server struct {
 	authService    *services.AuthService
 	userService    *services.UserService
 	productService *services.ProductService
+	uploadService  *services.UploadService
 }
 
 func NewServer(cfg *config.Config, logger *zerolog.Logger, store db.Store) *Server {
+	uploadProvider := providers.NewLocalUploadProvider(cfg.Upload.UploadPath)
 	return &Server{
 		cfg:            cfg,
 		logger:         logger,
@@ -27,6 +30,7 @@ func NewServer(cfg *config.Config, logger *zerolog.Logger, store db.Store) *Serv
 		authService:    services.NewAuthService(store, cfg),
 		userService:    services.NewUserService(store),
 		productService: services.NewProductService(store),
+		uploadService:  services.NewUploadService(uploadProvider),
 	}
 }
 
@@ -74,6 +78,7 @@ func (s *Server) SetupRoutes() *gin.Engine {
 				products.POST("", s.AdminAuthMiddleware(), s.CreateProduct)
 				products.PUT("/:id", s.AdminAuthMiddleware(), s.UpdateProductByID)
 				products.DELETE("/:id", s.AdminAuthMiddleware(), s.DeleteProductByID)
+				products.POST("/:id/image", s.AdminAuthMiddleware(), s.UploadProductImage)
 			}
 		}
 

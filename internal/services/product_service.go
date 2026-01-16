@@ -336,6 +336,23 @@ func (s *ProductService) DeleteProductByID(ctx context.Context, id uint) error {
 	return s.store.SoftDeleteProduct(ctx, int32(id)) //#nosec G115 -- id from validated request
 }
 
+// UpdateProductImage creates a new product image record for the given product
+func (s *ProductService) UpdateProductImage(ctx context.Context, productID uint, imageURL string, altText string) error {
+	_, err := s.store.CreateProductImage(ctx, db.CreateProductImageParams{
+		ProductID: int32(productID), //#nosec G115 -- id from validated request
+		Url:       imageURL,
+		AltText: pgtype.Text{
+			String: altText,
+			Valid:  true,
+		},
+		IsPrimary: pgtype.Bool{
+			Bool:  true, // Set as primary by default when uploading
+			Valid: true,
+		},
+	})
+	return err
+}
+
 func (s *ProductService) convertProductToProductResponse(product db.Product, images []db.ProductImage) *dto.ProductResponse {
 	// Convert []db.ProductImage to []dto.ProductImageResponse
 	imageResponses := make([]dto.ProductImageResponse, len(images))
