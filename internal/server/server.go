@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog"
 	db "github.com/trenchesdeveloper/go-ai-store/db/sqlc"
 	"github.com/trenchesdeveloper/go-ai-store/internal/config"
+	"github.com/trenchesdeveloper/go-ai-store/internal/interfaces"
 	"github.com/trenchesdeveloper/go-ai-store/internal/providers"
 	"github.com/trenchesdeveloper/go-ai-store/internal/services"
 )
@@ -21,8 +22,26 @@ type Server struct {
 	uploadService  *services.UploadService
 }
 
-func NewServer(cfg *config.Config, logger *zerolog.Logger, store db.Store) *Server {
-	uploadProvider := providers.NewLocalUploadProvider(cfg.Upload.UploadPath)
+func NewServer(cfg *config.Config, logger *zerolog.Logger, store db.Store) (*Server, error) {
+	// Initialize upload provider based on config
+	var uploadProvider interfaces.Upload
+	switch cfg.Upload.Provider {
+	case "s3":
+		s3Provider, err := providers.NewS3UploadProvider(providers.S3Config{
+			Endpoint:        cfg.AWS.S3Endpoint,
+			Region:          cfg.AWS.Region,
+			AccessKeyID:     cfg.AWS.AccessKeyID,
+			SecretAccessKey: cfg.AWS.SecretAccessKey,
+			Bucket:          cfg.AWS.S3Bucket,
+		})
+		if err != nil {
+			return nil, err
+		}
+		uploadProvider = s3Provider
+	default:
+		uploadProvider = providers.NewLocalUploadProvider(cfg.Upload.UploadPath)
+	}
+
 	return &Server{
 		cfg:            cfg,
 		logger:         logger,
@@ -31,7 +50,7 @@ func NewServer(cfg *config.Config, logger *zerolog.Logger, store db.Store) *Serv
 		userService:    services.NewUserService(store),
 		productService: services.NewProductService(store),
 		uploadService:  services.NewUploadService(uploadProvider),
-	}
+	}, nil
 }
 
 func (s *Server) SetupRoutes() *gin.Engine {

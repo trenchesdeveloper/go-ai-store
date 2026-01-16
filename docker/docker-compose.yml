@@ -20,8 +20,10 @@ services:
       - "4566:4566"
     environment:
       - SERVICES=s3,sqs
+      - PERSISTENCE=1
     volumes:
-      - localstack_data:/tmp/localstack
+      - localstack_data:/var/lib/localstack
+      - ./init/aws/init-localstack.sh:/etc/localstack/init/ready.d/init.sh
 
 volumes:
   postgres_data:

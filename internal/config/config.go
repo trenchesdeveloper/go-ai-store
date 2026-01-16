@@ -45,6 +45,7 @@ type AWSConfig struct {
 }
 
 type UploadConfig struct {
+	Provider      string // "local" or "s3"
 	UploadPath    string
 	MaxUploadSize int64
 }
@@ -82,6 +83,7 @@ func LoadConfig() (*Config, error) {
 			S3Bucket:        getEnv("AWS_S3_BUCKET", "ecommerce-uploads"),
 		},
 		Upload: UploadConfig{
+			Provider:      getEnv("UPLOAD_PROVIDER", "local"),
 			UploadPath:    getEnv("UPLOAD_PATH", "uploads"),
 			MaxUploadSize: maxUploadSize,
 		},
