@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/trenchesdeveloper/go-ai-store/db/sqlc"
@@ -35,7 +36,7 @@ func (s *ProductService) CreateCategory(ctx context.Context, req dto.CreateCateg
 }
 
 func (s *ProductService) GetCategories(ctx context.Context) ([]dto.CategoryResponse, error) {
-	categories, err := s.store.ListCategories(ctx, db.ListCategoriesParams{})
+	categories, err := s.store.ListActiveCategories(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +97,7 @@ func (s *ProductService) DeleteCategory(ctx context.Context, id uint) error {
 
 func (s *ProductService) CreateProduct(ctx context.Context, req dto.CreateProductRequest) (*dto.ProductResponse, error) {
 	var price pgtype.Numeric
-	if err := price.Scan(req.Price); err != nil {
+	if err := price.Scan(fmt.Sprintf("%f", req.Price)); err != nil {
 		return nil, err
 	}
 
@@ -118,6 +119,12 @@ func (s *ProductService) CreateProduct(ctx context.Context, req dto.CreateProduc
 		return nil, err
 	}
 
+	// Fetch the category to include in response
+	category, err := s.store.GetCategoryByID(ctx, product.CategoryID)
+	if err != nil {
+		return nil, err
+	}
+
 	priceFloat, _ := product.Price.Float64Value()
 	return &dto.ProductResponse{
 		ID:          uint(product.ID), //#nosec G115 -- DB ID is always positive
@@ -126,6 +133,15 @@ func (s *ProductService) CreateProduct(ctx context.Context, req dto.CreateProduc
 		Price:       priceFloat.Float64,
 		Stock:       int(product.Stock.Int32),
 		CategoryID:  uint(product.CategoryID), //#nosec G115 -- DB ID is always positive
+		SKU:         product.Sku,
+		IsActive:    product.IsActive.Bool,
+		Category: dto.CategoryResponse{
+			ID:          int64(category.ID),
+			Name:        category.Name,
+			Description: category.Description.String,
+			IsActive:    category.IsActive.Bool,
+		},
+		Images: []dto.ProductImageResponse{},
 	}, nil
 }
 
@@ -270,7 +286,7 @@ func (s *ProductService) UpdateProductByID(ctx context.Context, id uint, req *dt
 
 	// Prepare price from request
 	var price pgtype.Numeric
-	if err := price.Scan(req.Price); err != nil {
+	if err := price.Scan(fmt.Sprintf("%f", req.Price)); err != nil {
 		return nil, err
 	}
 

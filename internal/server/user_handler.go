@@ -3,15 +3,13 @@ package server
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/trenchesdeveloper/go-ai-store/internal/dto"
-	"github.com/trenchesdeveloper/go-ai-store/internal/services"
 	"github.com/trenchesdeveloper/go-ai-store/internal/utils"
 )
 
 func (s *Server) GetProfile(ctx *gin.Context) {
 	userID := ctx.GetUint("user_id")
-	userService := services.NewUserService(s.store)
 
-	user, err := userService.GetProfile(ctx, userID)
+	user, err := s.userService.GetProfile(ctx, userID)
 	if err != nil {
 		utils.NotFoundResponse(ctx, "User not found", err)
 		return
@@ -22,7 +20,6 @@ func (s *Server) GetProfile(ctx *gin.Context) {
 
 func (s *Server) UpdateProfile(ctx *gin.Context) {
 	userID := ctx.GetUint("user_id")
-	userService := services.NewUserService(s.store)
 
 	var req dto.UpdateProfileRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -30,7 +27,7 @@ func (s *Server) UpdateProfile(ctx *gin.Context) {
 		return
 	}
 
-	user, err := userService.UpdateProfile(ctx, userID, req)
+	user, err := s.userService.UpdateProfile(ctx, userID, req)
 	if err != nil {
 		utils.InternalErrorResponse(ctx, "Failed to update user profile", err)
 		return

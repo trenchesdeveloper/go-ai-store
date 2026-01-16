@@ -34,7 +34,6 @@ func main() {
 
 	// Create store
 	store := db.NewStore(pool)
-	_ = store // TODO: pass store to server/handlers
 
 	// Start the server
 	gin.SetMode(cfg.Server.GinMode)

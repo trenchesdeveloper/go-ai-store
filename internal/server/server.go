@@ -7,19 +7,26 @@ import (
 	"github.com/rs/zerolog"
 	db "github.com/trenchesdeveloper/go-ai-store/db/sqlc"
 	"github.com/trenchesdeveloper/go-ai-store/internal/config"
+	"github.com/trenchesdeveloper/go-ai-store/internal/services"
 )
 
 type Server struct {
-	cfg    *config.Config
-	logger *zerolog.Logger
-	store  db.Store
+	cfg            *config.Config
+	logger         *zerolog.Logger
+	store          db.Store
+	authService    *services.AuthService
+	userService    *services.UserService
+	productService *services.ProductService
 }
 
 func NewServer(cfg *config.Config, logger *zerolog.Logger, store db.Store) *Server {
 	return &Server{
-		cfg:    cfg,
-		logger: logger,
-		store:  store,
+		cfg:            cfg,
+		logger:         logger,
+		store:          store,
+		authService:    services.NewAuthService(store, cfg),
+		userService:    services.NewUserService(store),
+		productService: services.NewProductService(store),
 	}
 }
 

@@ -5,7 +5,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/trenchesdeveloper/go-ai-store/internal/dto"
-	"github.com/trenchesdeveloper/go-ai-store/internal/services"
 	"github.com/trenchesdeveloper/go-ai-store/internal/utils"
 )
 
@@ -16,19 +15,17 @@ func (s *Server) CreateCategory(ctx *gin.Context) {
 		return
 	}
 
-	categoryService := services.NewProductService(s.store)
-	category, err := categoryService.CreateCategory(ctx, req)
+	category, err := s.productService.CreateCategory(ctx, req)
 	if err != nil {
 		utils.InternalErrorResponse(ctx, "Failed to create category", err)
 		return
 	}
 
-	utils.SuccessResponse(ctx, "Category created successfully", category)
+	utils.CreatedResponse(ctx, "Category created successfully", category)
 }
 
 func (s *Server) GetCategories(ctx *gin.Context) {
-	categoriesService := services.NewProductService(s.store)
-	categories, err := categoriesService.GetCategories(ctx)
+	categories, err := s.productService.GetCategories(ctx)
 	if err != nil {
 		utils.InternalErrorResponse(ctx, "Failed to get categories", err)
 		return
@@ -53,8 +50,7 @@ func (s *Server) UpdateCategory(ctx *gin.Context) {
 
 	req.ID = int32(id) //#nosec G115 -- category ID is bounded by database constraints
 
-	categoryService := services.NewProductService(s.store)
-	category, err := categoryService.UpdateCategory(ctx, req)
+	category, err := s.productService.UpdateCategory(ctx, req)
 	if err != nil {
 		utils.InternalErrorResponse(ctx, "Failed to update category", err)
 		return
@@ -64,7 +60,6 @@ func (s *Server) UpdateCategory(ctx *gin.Context) {
 }
 
 func (s *Server) DeleteCategory(ctx *gin.Context) {
-	categoryService := services.NewProductService(s.store)
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
@@ -72,7 +67,7 @@ func (s *Server) DeleteCategory(ctx *gin.Context) {
 		return
 	}
 
-	err = categoryService.DeleteCategory(ctx, uint(id))
+	err = s.productService.DeleteCategory(ctx, uint(id))
 	if err != nil {
 		utils.InternalErrorResponse(ctx, "Failed to delete category", err)
 		return
@@ -88,14 +83,13 @@ func (s *Server) CreateProduct(ctx *gin.Context) {
 		return
 	}
 
-	productService := services.NewProductService(s.store)
-	product, err := productService.CreateProduct(ctx, req)
+	product, err := s.productService.CreateProduct(ctx, req)
 	if err != nil {
 		utils.InternalErrorResponse(ctx, "Failed to create product", err)
 		return
 	}
 
-	utils.SuccessResponse(ctx, "Product created successfully", product)
+	utils.CreatedResponse(ctx, "Product created successfully", product)
 }
 
 func (s *Server) GetProducts(ctx *gin.Context) {
@@ -114,8 +108,7 @@ func (s *Server) GetProducts(ctx *gin.Context) {
 		}
 	}
 
-	productsService := services.NewProductService(s.store)
-	products, paginationMeta, err := productsService.GetProducts(ctx, page, limit)
+	products, paginationMeta, err := s.productService.GetProducts(ctx, page, limit)
 	if err != nil {
 		utils.InternalErrorResponse(ctx, "Failed to get products", err)
 		return
@@ -132,8 +125,7 @@ func (s *Server) GetProductByID(ctx *gin.Context) {
 		return
 	}
 
-	productService := services.NewProductService(s.store)
-	product, err := productService.GetProductByID(ctx, uint(id))
+	product, err := s.productService.GetProductByID(ctx, uint(id))
 	if err != nil {
 		utils.NotFoundResponse(ctx, "Product not found", err)
 		return
@@ -156,8 +148,7 @@ func (s *Server) UpdateProductByID(ctx *gin.Context) {
 		return
 	}
 
-	productService := services.NewProductService(s.store)
-	product, err := productService.UpdateProductByID(ctx, uint(id), &req)
+	product, err := s.productService.UpdateProductByID(ctx, uint(id), &req)
 	if err != nil {
 		utils.InternalErrorResponse(ctx, "Failed to update product", err)
 		return
@@ -174,8 +165,7 @@ func (s *Server) DeleteProductByID(ctx *gin.Context) {
 		return
 	}
 
-	productService := services.NewProductService(s.store)
-	err = productService.DeleteProductByID(ctx, uint(id))
+	err = s.productService.DeleteProductByID(ctx, uint(id))
 	if err != nil {
 		utils.InternalErrorResponse(ctx, "Failed to delete product", err)
 		return
