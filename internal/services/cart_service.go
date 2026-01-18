@@ -73,7 +73,7 @@ func (s *CartService) AddToCart(ctx context.Context, userID int32, req dto.AddTo
 		return nil, ErrInsufficientStock
 	}
 
-	// Check if item already exists in cart
+	// Check if item already exists in cart (active)
 	existingItem, err := s.store.GetCartItem(ctx, db.GetCartItemParams{
 		CartID:    cart.ID,
 		ProductID: int32(req.ProductID), //#nosec G115 -- product ID from validated request
@@ -83,7 +83,7 @@ func (s *CartService) AddToCart(ctx context.Context, userID int32, req dto.AddTo
 	}
 
 	if err == nil {
-		// Update existing item quantity
+		// Update existing active item quantity
 		newQuantity := existingItem.Quantity + int32(req.Quantity) //#nosec G115 -- quantity is validated
 		if int(product.Stock.Int32) < int(newQuantity) {
 			return nil, ErrInsufficientStock
@@ -96,14 +96,27 @@ func (s *CartService) AddToCart(ctx context.Context, userID int32, req dto.AddTo
 			return nil, fmt.Errorf("failed to update cart item: %w", err)
 		}
 	} else {
-		// Create new cart item
-		_, err = s.store.CreateCartItem(ctx, db.CreateCartItemParams{
+		// Try to restore a soft-deleted item first
+		restoredItem, restoreErr := s.store.RestoreCartItem(ctx, db.RestoreCartItemParams{
 			CartID:    cart.ID,
 			ProductID: int32(req.ProductID), //#nosec G115 -- product ID from validated request
 			Quantity:  int32(req.Quantity),  //#nosec G115 -- quantity is validated
 		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to create cart item: %w", err)
+		if restoreErr == nil {
+			// Item was restored, update quantity if needed
+			_ = restoredItem // Successfully restored
+		} else if errors.Is(restoreErr, pgx.ErrNoRows) {
+			// No soft-deleted item exists, create new
+			_, err = s.store.CreateCartItem(ctx, db.CreateCartItemParams{
+				CartID:    cart.ID,
+				ProductID: int32(req.ProductID), //#nosec G115 -- product ID from validated request
+				Quantity:  int32(req.Quantity),  //#nosec G115 -- quantity is validated
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to create cart item: %w", err)
+			}
+		} else {
+			return nil, fmt.Errorf("failed to restore cart item: %w", restoreErr)
 		}
 	}
 

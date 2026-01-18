@@ -136,6 +136,14 @@ type Order struct {
 	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
 }
 
+type OrderIdempotencyKey struct {
+	ID             int32              `json:"id"`
+	UserID         int32              `json:"user_id"`
+	IdempotencyKey string             `json:"idempotency_key"`
+	OrderID        pgtype.Int4        `json:"order_id"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+}
+
 type OrderItem struct {
 	ID        int32              `json:"id"`
 	OrderID   int32              `json:"order_id"`

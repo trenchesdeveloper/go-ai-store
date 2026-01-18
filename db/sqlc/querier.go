@@ -24,6 +24,7 @@ type Querier interface {
 	CreateCart(ctx context.Context, userID int32) (Cart, error)
 	CreateCartItem(ctx context.Context, arg CreateCartItemParams) (CartItem, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
+	CreateIdempotencyKey(ctx context.Context, arg CreateIdempotencyKeyParams) (OrderIdempotencyKey, error)
 	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
 	CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) (OrderItem, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
@@ -39,14 +40,17 @@ type Querier interface {
 	GetCartItemByID(ctx context.Context, id int32) (CartItem, error)
 	GetCategoriesByIDs(ctx context.Context, dollar_1 []int32) ([]Category, error)
 	GetCategoryByID(ctx context.Context, id int32) (Category, error)
+	GetIdempotencyKey(ctx context.Context, arg GetIdempotencyKeyParams) (OrderIdempotencyKey, error)
 	GetOrderByID(ctx context.Context, id int32) (Order, error)
 	GetOrderItemByID(ctx context.Context, id int32) (OrderItem, error)
 	GetOrderTotal(ctx context.Context, orderID int32) (pgtype.Numeric, error)
 	GetPrimaryProductImage(ctx context.Context, productID int32) (ProductImage, error)
 	GetProductByID(ctx context.Context, id int32) (Product, error)
+	GetProductByIDForUpdate(ctx context.Context, id int32) (Product, error)
 	GetProductBySKU(ctx context.Context, sku string) (Product, error)
 	GetProductImageByID(ctx context.Context, id int32) (ProductImage, error)
 	GetProductsByIDs(ctx context.Context, dollar_1 []int32) ([]Product, error)
+	GetProductsByIDsForUpdate(ctx context.Context, dollar_1 []int32) ([]Product, error)
 	GetRefreshToken(ctx context.Context, token string) (RefreshToken, error)
 	GetRefreshTokensByUserID(ctx context.Context, userID int32) ([]RefreshToken, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
@@ -64,6 +68,7 @@ type Querier interface {
 	ListProducts(ctx context.Context, arg ListProductsParams) ([]Product, error)
 	ListProductsByCategory(ctx context.Context, arg ListProductsByCategoryParams) ([]Product, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
+	RestoreCartItem(ctx context.Context, arg RestoreCartItemParams) (CartItem, error)
 	SetPrimaryProductImage(ctx context.Context, arg SetPrimaryProductImageParams) error
 	SoftDeleteCart(ctx context.Context, id int32) error
 	SoftDeleteCartByUserID(ctx context.Context, userID int32) error
@@ -81,6 +86,7 @@ type Querier interface {
 	UpdateCartTimestamp(ctx context.Context, id int32) (Cart, error)
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error)
 	UpdateCategoryStatus(ctx context.Context, arg UpdateCategoryStatusParams) (Category, error)
+	UpdateIdempotencyKeyOrderID(ctx context.Context, arg UpdateIdempotencyKeyOrderIDParams) error
 	UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) (Order, error)
 	UpdateOrderTotal(ctx context.Context, arg UpdateOrderTotalParams) (Order, error)
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
@@ -91,6 +97,7 @@ type Querier interface {
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 	UpdateUserRole(ctx context.Context, arg UpdateUserRoleParams) (User, error)
 	UpdateUserStatus(ctx context.Context, arg UpdateUserStatusParams) (User, error)
+	UpsertCartItem(ctx context.Context, arg UpsertCartItemParams) (CartItem, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -10,10 +10,14 @@ import (
 )
 
 // CreateOrder creates a new order from the user's cart
+// Accepts X-Idempotency-Key header to prevent duplicate submissions
 func (s *Server) CreateOrder(ctx *gin.Context) {
 	userID := ctx.GetUint("user_id")
 
-	order, err := s.orderService.CreateOrderFromCart(ctx, int32(userID)) //#nosec G115 -- user ID from auth middleware
+	// Get idempotency key from header (optional)
+	idempotencyKey := ctx.GetHeader("X-Idempotency-Key")
+
+	order, err := s.orderService.CreateOrderWithIdempotency(ctx, int32(userID), idempotencyKey) //#nosec G115 -- user ID from auth middleware
 	if err != nil {
 		switch {
 		case errors.Is(err, services.ErrEmptyCart):
@@ -22,6 +26,8 @@ func (s *Server) CreateOrder(ctx *gin.Context) {
 			utils.NotFoundResponse(ctx, "Product not found", err)
 		case errors.Is(err, services.ErrInsufficientStock):
 			utils.BadRequestResponse(ctx, "Insufficient stock", err)
+		case errors.Is(err, services.ErrDuplicateOrder):
+			utils.BadRequestResponse(ctx, "Duplicate order submission - please wait", err)
 		default:
 			utils.InternalErrorResponse(ctx, "Failed to create order", err)
 		}

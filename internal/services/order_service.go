@@ -17,6 +17,7 @@ var (
 	ErrEmptyCart           = errors.New("cannot create order from empty cart")
 	ErrOrderNotCancellable = errors.New("order cannot be cancelled")
 	ErrUnauthorizedOrder   = errors.New("unauthorized access to order")
+	ErrDuplicateOrder      = errors.New("duplicate order submission")
 )
 
 type OrderService struct {
@@ -31,9 +32,51 @@ func NewOrderService(store db.Store, cartService *CartService) *OrderService {
 	}
 }
 
+// CreateOrderWithIdempotency creates a new order with idempotency key support
+// If the same idempotency key is provided twice, returns the existing order
+func (s *OrderService) CreateOrderWithIdempotency(ctx context.Context, userID int32, idempotencyKey string) (*dto.OrderResponse, error) {
+	// Check if order already exists for this idempotency key
+	if idempotencyKey != "" {
+		existingKey, err := s.store.GetIdempotencyKey(ctx, db.GetIdempotencyKeyParams{
+			UserID:         userID,
+			IdempotencyKey: idempotencyKey,
+		})
+		if err == nil && existingKey.OrderID.Valid {
+			// Return existing order
+			return s.GetOrderByID(ctx, userID, existingKey.OrderID.Int32, false)
+		}
+		// If key exists but no order_id, another request is in progress
+		if err == nil && !existingKey.OrderID.Valid {
+			return nil, ErrDuplicateOrder
+		}
+		// If not found, proceed to create
+	}
+
+	// Create the order using the existing logic
+	orderResponse, err := s.CreateOrderFromCart(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Store the idempotency key with the order ID
+	if idempotencyKey != "" {
+		_, _ = s.store.CreateIdempotencyKey(ctx, db.CreateIdempotencyKeyParams{
+			UserID:         userID,
+			IdempotencyKey: idempotencyKey,
+			OrderID: pgtype.Int4{
+				Int32: int32(orderResponse.ID), //#nosec G115 -- order ID from DB
+				Valid: true,
+			},
+		})
+	}
+
+	return orderResponse, nil
+}
+
 // CreateOrderFromCart creates a new order from the user's cart
+// Uses database transaction with row-level locking to prevent race conditions
 func (s *OrderService) CreateOrderFromCart(ctx context.Context, userID int32) (*dto.OrderResponse, error) {
-	// Get the user's cart
+	// Get the user's cart (outside transaction - read-only)
 	cart, err := s.store.GetCartByUserID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -42,7 +85,7 @@ func (s *OrderService) CreateOrderFromCart(ctx context.Context, userID int32) (*
 		return nil, fmt.Errorf("failed to get cart: %w", err)
 	}
 
-	// Get cart items
+	// Get cart items (outside transaction - read-only)
 	cartItems, err := s.store.ListCartItems(ctx, cart.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list cart items: %w", err)
@@ -52,88 +95,104 @@ func (s *OrderService) CreateOrderFromCart(ctx context.Context, userID int32) (*
 		return nil, ErrEmptyCart
 	}
 
-	// Collect product IDs and fetch products
+	// Collect product IDs
 	productIDs := make([]int32, len(cartItems))
 	for i, item := range cartItems {
 		productIDs[i] = item.ProductID
 	}
 
-	products, err := s.store.GetProductsByIDs(ctx, productIDs)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get products: %w", err)
-	}
+	var order db.Order
 
-	productMap := make(map[int32]db.Product, len(products))
-	for _, p := range products {
-		productMap[p.ID] = p
-	}
-
-	// Validate stock and calculate total
-	var totalAmount float64
-	for _, item := range cartItems {
-		product, ok := productMap[item.ProductID]
-		if !ok {
-			return nil, ErrProductNotFound
+	// Execute order creation within a transaction with row locking
+	err = s.store.ExecTx(ctx, func(q *db.Queries) error {
+		// Lock product rows with FOR UPDATE to prevent concurrent modifications
+		products, err := q.GetProductsByIDsForUpdate(ctx, productIDs)
+		if err != nil {
+			return fmt.Errorf("failed to lock products: %w", err)
 		}
-		if int(product.Stock.Int32) < int(item.Quantity) {
-			return nil, ErrInsufficientStock
+
+		if len(products) != len(productIDs) {
+			return ErrProductNotFound
 		}
-		priceFloat, _ := product.Price.Float64Value()
-		totalAmount += priceFloat.Float64 * float64(item.Quantity)
-	}
 
-	// Create order
-	var totalNumeric pgtype.Numeric
-	if err := totalNumeric.Scan(fmt.Sprintf("%.2f", totalAmount)); err != nil {
-		return nil, fmt.Errorf("failed to parse total amount: %w", err)
-	}
+		productMap := make(map[int32]db.Product, len(products))
+		for _, p := range products {
+			productMap[p.ID] = p
+		}
 
-	order, err := s.store.CreateOrder(ctx, db.CreateOrderParams{
-		UserID:      userID,
-		TotalAmount: totalNumeric,
+		// Validate stock and calculate total (under lock)
+		var totalAmount float64
+		for _, item := range cartItems {
+			product, ok := productMap[item.ProductID]
+			if !ok {
+				return ErrProductNotFound
+			}
+			if int(product.Stock.Int32) < int(item.Quantity) {
+				return ErrInsufficientStock
+			}
+			priceFloat, _ := product.Price.Float64Value()
+			totalAmount += priceFloat.Float64 * float64(item.Quantity)
+		}
+
+		// Create order
+		var totalNumeric pgtype.Numeric
+		if err := totalNumeric.Scan(fmt.Sprintf("%.2f", totalAmount)); err != nil {
+			return fmt.Errorf("failed to parse total amount: %w", err)
+		}
+
+		order, err = q.CreateOrder(ctx, db.CreateOrderParams{
+			UserID:      userID,
+			TotalAmount: totalNumeric,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create order: %w", err)
+		}
+
+		// Create order items and update stock
+		for _, item := range cartItems {
+			product := productMap[item.ProductID]
+			priceFloat, _ := product.Price.Float64Value()
+
+			var priceNumeric pgtype.Numeric
+			if err := priceNumeric.Scan(fmt.Sprintf("%.2f", priceFloat.Float64)); err != nil {
+				return fmt.Errorf("failed to parse price: %w", err)
+			}
+
+			_, err := q.CreateOrderItem(ctx, db.CreateOrderItemParams{
+				OrderID:   order.ID,
+				ProductID: item.ProductID,
+				Quantity:  item.Quantity,
+				Price:     priceNumeric,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to create order item: %w", err)
+			}
+
+			// Update product stock (still under lock)
+			newStock := product.Stock.Int32 - item.Quantity
+			_, err = q.UpdateProductStock(ctx, db.UpdateProductStockParams{
+				ID: product.ID,
+				Stock: pgtype.Int4{
+					Int32: newStock,
+					Valid: true,
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to update product stock: %w", err)
+			}
+		}
+
+		// Clear cart items within transaction
+		err = q.SoftDeleteCartItemsByCartID(ctx, cart.ID)
+		if err != nil {
+			return fmt.Errorf("failed to clear cart: %w", err)
+		}
+
+		return nil
 	})
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to create order: %w", err)
-	}
-
-	// Create order items and update stock
-	for _, item := range cartItems {
-		product := productMap[item.ProductID]
-		priceFloat, _ := product.Price.Float64Value()
-
-		var priceNumeric pgtype.Numeric
-		if err := priceNumeric.Scan(fmt.Sprintf("%.2f", priceFloat.Float64)); err != nil {
-			return nil, fmt.Errorf("failed to parse price: %w", err)
-		}
-
-		_, err := s.store.CreateOrderItem(ctx, db.CreateOrderItemParams{
-			OrderID:   order.ID,
-			ProductID: item.ProductID,
-			Quantity:  item.Quantity,
-			Price:     priceNumeric,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to create order item: %w", err)
-		}
-
-		// Update product stock
-		newStock := product.Stock.Int32 - item.Quantity
-		_, err = s.store.UpdateProductStock(ctx, db.UpdateProductStockParams{
-			ID: product.ID,
-			Stock: pgtype.Int4{
-				Int32: newStock,
-				Valid: true,
-			},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to update product stock: %w", err)
-		}
-	}
-
-	// Clear the cart
-	err = s.cartService.ClearCart(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to clear cart: %w", err)
+		return nil, err
 	}
 
 	// Return the order response
