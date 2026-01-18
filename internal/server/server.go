@@ -20,6 +20,8 @@ type Server struct {
 	userService    *services.UserService
 	productService *services.ProductService
 	uploadService  *services.UploadService
+	cartService    *services.CartService
+	orderService   *services.OrderService
 }
 
 func NewServer(cfg *config.Config, logger *zerolog.Logger, store db.Store) (*Server, error) {
@@ -42,6 +44,7 @@ func NewServer(cfg *config.Config, logger *zerolog.Logger, store db.Store) (*Ser
 		uploadProvider = providers.NewLocalUploadProvider(cfg.Upload.UploadPath)
 	}
 
+	cartService := services.NewCartService(store)
 	return &Server{
 		cfg:            cfg,
 		logger:         logger,
@@ -50,6 +53,8 @@ func NewServer(cfg *config.Config, logger *zerolog.Logger, store db.Store) (*Ser
 		userService:    services.NewUserService(store),
 		productService: services.NewProductService(store),
 		uploadService:  services.NewUploadService(uploadProvider),
+		cartService:    cartService,
+		orderService:   services.NewOrderService(store, cartService),
 	}, nil
 }
 
@@ -98,6 +103,26 @@ func (s *Server) SetupRoutes() *gin.Engine {
 				products.PUT("/:id", s.AdminAuthMiddleware(), s.UpdateProductByID)
 				products.DELETE("/:id", s.AdminAuthMiddleware(), s.DeleteProductByID)
 				products.POST("/:id/image", s.AdminAuthMiddleware(), s.UploadProductImage)
+			}
+
+			// cart routes
+			cart := protected.Group("/cart")
+			{
+				cart.GET("", s.GetCart)
+				cart.POST("/items", s.AddToCart)
+				cart.PUT("/items/:itemId", s.UpdateCartItem)
+				cart.DELETE("/items/:itemId", s.RemoveCartItem)
+				cart.DELETE("", s.ClearCart)
+			}
+
+			// order routes
+			orders := protected.Group("/orders")
+			{
+				orders.POST("", s.CreateOrder)
+				orders.GET("", s.GetOrders)
+				orders.GET("/:id", s.GetOrder)
+				orders.POST("/:id/cancel", s.CancelOrder)
+				orders.PUT("/:id/status", s.AdminAuthMiddleware(), s.UpdateOrderStatus)
 			}
 		}
 

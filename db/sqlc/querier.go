@@ -46,6 +46,7 @@ type Querier interface {
 	GetProductByID(ctx context.Context, id int32) (Product, error)
 	GetProductBySKU(ctx context.Context, sku string) (Product, error)
 	GetProductImageByID(ctx context.Context, id int32) (ProductImage, error)
+	GetProductsByIDs(ctx context.Context, dollar_1 []int32) ([]Product, error)
 	GetRefreshToken(ctx context.Context, token string) (RefreshToken, error)
 	GetRefreshTokensByUserID(ctx context.Context, userID int32) ([]RefreshToken, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)

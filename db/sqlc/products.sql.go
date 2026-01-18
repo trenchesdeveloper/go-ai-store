@@ -133,6 +133,43 @@ func (q *Queries) GetProductBySKU(ctx context.Context, sku string) (Product, err
 	return i, err
 }
 
+const getProductsByIDs = `-- name: GetProductsByIDs :many
+SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at FROM products
+WHERE id = ANY($1::int[]) AND deleted_at IS NULL
+`
+
+func (q *Queries) GetProductsByIDs(ctx context.Context, dollar_1 []int32) ([]Product, error) {
+	rows, err := q.db.Query(ctx, getProductsByIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Product{}
+	for rows.Next() {
+		var i Product
+		if err := rows.Scan(
+			&i.ID,
+			&i.CategoryID,
+			&i.Name,
+			&i.Description,
+			&i.Price,
+			&i.Stock,
+			&i.Sku,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listActiveProducts = `-- name: ListActiveProducts :many
 SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at FROM products
 WHERE is_active = true AND deleted_at IS NULL
