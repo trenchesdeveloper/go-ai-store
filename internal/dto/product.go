@@ -6,6 +6,7 @@ type CreateCategoryRequest struct {
 }
 
 type UpdateCategoryRequest struct {
+	ID          int32  `json:"id" binding:"required"`
 	Name        string `json:"name" binding:"required"`
 	Description string `json:"description"`
 	IsActive    *bool  `json:"is_active"`

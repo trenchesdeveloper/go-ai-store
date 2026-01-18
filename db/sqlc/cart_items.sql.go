@@ -126,6 +126,34 @@ func (q *Queries) ListCartItems(ctx context.Context, cartID int32) ([]CartItem, 
 	return items, nil
 }
 
+const restoreCartItem = `-- name: RestoreCartItem :one
+UPDATE cart_items
+SET quantity = $3, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP
+WHERE cart_id = $1 AND product_id = $2 AND deleted_at IS NOT NULL
+RETURNING id, cart_id, product_id, quantity, created_at, updated_at, deleted_at
+`
+
+type RestoreCartItemParams struct {
+	CartID    int32 `json:"cart_id"`
+	ProductID int32 `json:"product_id"`
+	Quantity  int32 `json:"quantity"`
+}
+
+func (q *Queries) RestoreCartItem(ctx context.Context, arg RestoreCartItemParams) (CartItem, error) {
+	row := q.db.QueryRow(ctx, restoreCartItem, arg.CartID, arg.ProductID, arg.Quantity)
+	var i CartItem
+	err := row.Scan(
+		&i.ID,
+		&i.CartID,
+		&i.ProductID,
+		&i.Quantity,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const softDeleteCartItem = `-- name: SoftDeleteCartItem :exec
 UPDATE cart_items
 SET deleted_at = CURRENT_TIMESTAMP
@@ -162,6 +190,39 @@ type UpdateCartItemQuantityParams struct {
 
 func (q *Queries) UpdateCartItemQuantity(ctx context.Context, arg UpdateCartItemQuantityParams) (CartItem, error) {
 	row := q.db.QueryRow(ctx, updateCartItemQuantity, arg.ID, arg.Quantity)
+	var i CartItem
+	err := row.Scan(
+		&i.ID,
+		&i.CartID,
+		&i.ProductID,
+		&i.Quantity,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const upsertCartItem = `-- name: UpsertCartItem :one
+INSERT INTO cart_items (cart_id, product_id, quantity)
+VALUES ($1, $2, $3)
+ON CONFLICT (cart_id, product_id)
+DO UPDATE SET
+    quantity = cart_items.quantity + EXCLUDED.quantity,
+    deleted_at = NULL,
+    updated_at = CURRENT_TIMESTAMP
+WHERE cart_items.deleted_at IS NOT NULL
+RETURNING id, cart_id, product_id, quantity, created_at, updated_at, deleted_at
+`
+
+type UpsertCartItemParams struct {
+	CartID    int32 `json:"cart_id"`
+	ProductID int32 `json:"product_id"`
+	Quantity  int32 `json:"quantity"`
+}
+
+func (q *Queries) UpsertCartItem(ctx context.Context, arg UpsertCartItemParams) (CartItem, error) {
+	row := q.db.QueryRow(ctx, upsertCartItem, arg.CartID, arg.ProductID, arg.Quantity)
 	var i CartItem
 	err := row.Scan(
 		&i.ID,

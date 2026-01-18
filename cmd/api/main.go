@@ -28,18 +28,21 @@ func main() {
 		log.Fatal().Err(err).Msg("failed to connect to database")
 	}
 
-	defer pool.Close()
-
 	log.Info().Msg("Database connection pool created")
 
 	// Create store
 	store := db.NewStore(pool)
-	_ = store // TODO: pass store to server/handlers
 
 	// Start the server
 	gin.SetMode(cfg.Server.GinMode)
 
-	srv := server.NewServer(cfg, log, store)
+	srv, err := server.NewServer(cfg, log, store)
+	if err != nil {
+		pool.Close()
+		log.Fatal().Err(err).Msg("failed to create server")
+	}
+
+	defer pool.Close()
 	router := srv.SetupRoutes()
 
 	httpServer := &http.Server{

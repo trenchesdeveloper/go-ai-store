@@ -11,6 +11,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countActiveProducts = `-- name: CountActiveProducts :one
+SELECT COUNT(*) FROM products WHERE is_active = true AND deleted_at IS NULL
+`
+
+func (q *Queries) CountActiveProducts(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countActiveProducts)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countProducts = `-- name: CountProducts :one
 SELECT COUNT(*) FROM products WHERE deleted_at IS NULL
 `
@@ -98,6 +109,31 @@ func (q *Queries) GetProductByID(ctx context.Context, id int32) (Product, error)
 	return i, err
 }
 
+const getProductByIDForUpdate = `-- name: GetProductByIDForUpdate :one
+SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at FROM products
+WHERE id = $1 AND deleted_at IS NULL
+FOR UPDATE
+`
+
+func (q *Queries) GetProductByIDForUpdate(ctx context.Context, id int32) (Product, error) {
+	row := q.db.QueryRow(ctx, getProductByIDForUpdate, id)
+	var i Product
+	err := row.Scan(
+		&i.ID,
+		&i.CategoryID,
+		&i.Name,
+		&i.Description,
+		&i.Price,
+		&i.Stock,
+		&i.Sku,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const getProductBySKU = `-- name: GetProductBySKU :one
 SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at FROM products
 WHERE sku = $1 AND deleted_at IS NULL
@@ -120,6 +156,81 @@ func (q *Queries) GetProductBySKU(ctx context.Context, sku string) (Product, err
 		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const getProductsByIDs = `-- name: GetProductsByIDs :many
+SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at FROM products
+WHERE id = ANY($1::int[]) AND deleted_at IS NULL
+`
+
+func (q *Queries) GetProductsByIDs(ctx context.Context, dollar_1 []int32) ([]Product, error) {
+	rows, err := q.db.Query(ctx, getProductsByIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Product{}
+	for rows.Next() {
+		var i Product
+		if err := rows.Scan(
+			&i.ID,
+			&i.CategoryID,
+			&i.Name,
+			&i.Description,
+			&i.Price,
+			&i.Stock,
+			&i.Sku,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getProductsByIDsForUpdate = `-- name: GetProductsByIDsForUpdate :many
+SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at FROM products
+WHERE id = ANY($1::int[]) AND deleted_at IS NULL
+FOR UPDATE
+`
+
+func (q *Queries) GetProductsByIDsForUpdate(ctx context.Context, dollar_1 []int32) ([]Product, error) {
+	rows, err := q.db.Query(ctx, getProductsByIDsForUpdate, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Product{}
+	for rows.Next() {
+		var i Product
+		if err := rows.Scan(
+			&i.ID,
+			&i.CategoryID,
+			&i.Name,
+			&i.Description,
+			&i.Price,
+			&i.Stock,
+			&i.Sku,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listActiveProducts = `-- name: ListActiveProducts :many
