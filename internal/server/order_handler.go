@@ -9,8 +9,19 @@ import (
 	"github.com/trenchesdeveloper/go-ai-store/internal/utils"
 )
 
-// CreateOrder creates a new order from the user's cart
-// Accepts X-Idempotency-Key header to prevent duplicate submissions
+// CreateOrder godoc
+// @Summary      Create order from cart
+// @Description  Creates a new order from the user's cart. Supports idempotency via X-Idempotency-Key header.
+// @Tags         orders
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        X-Idempotency-Key header string false "Idempotency key to prevent duplicate orders"
+// @Success      201  {object}  utils.Response{data=dto.OrderResponse}
+// @Failure      400  {object}  utils.Response
+// @Failure      404  {object}  utils.Response
+// @Failure      500  {object}  utils.Response
+// @Router       /orders [post]
 func (s *Server) CreateOrder(ctx *gin.Context) {
 	userID := ctx.GetUint("user_id")
 
@@ -37,7 +48,19 @@ func (s *Server) CreateOrder(ctx *gin.Context) {
 	utils.CreatedResponse(ctx, "Order created successfully", order)
 }
 
-// GetOrder retrieves a single order by ID
+// GetOrder godoc
+// @Summary      Get order by ID
+// @Description  Get a single order by ID. Users can only access their own orders unless admin.
+// @Tags         orders
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Order ID"
+// @Success      200  {object}  utils.Response{data=dto.OrderResponse}
+// @Failure      400  {object}  utils.Response
+// @Failure      403  {object}  utils.Response
+// @Failure      404  {object}  utils.Response
+// @Router       /orders/{id} [get]
 func (s *Server) GetOrder(ctx *gin.Context) {
 	userID := ctx.GetUint("user_id")
 
@@ -70,7 +93,18 @@ func (s *Server) GetOrder(ctx *gin.Context) {
 	utils.SuccessResponse(ctx, "Order retrieved successfully", order)
 }
 
-// GetOrders retrieves the user's orders with pagination
+// GetOrders godoc
+// @Summary      List user orders
+// @Description  Get all orders for the authenticated user with pagination
+// @Tags         orders
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        page query int false "Page number" default(1)
+// @Param        limit query int false "Items per page" default(10)
+// @Success      200  {object}  utils.PaginatedResponse{data=[]dto.OrderResponse}
+// @Failure      500  {object}  utils.Response
+// @Router       /orders [get]
 func (s *Server) GetOrders(ctx *gin.Context) {
 	userID := ctx.GetUint("user_id")
 
@@ -99,7 +133,19 @@ func (s *Server) GetOrders(ctx *gin.Context) {
 	utils.PaginatedSuccessResponse(ctx, "Orders retrieved successfully", orders, *pagination)
 }
 
-// CancelOrder cancels a pending order
+// CancelOrder godoc
+// @Summary      Cancel order
+// @Description  Cancel a pending order. Only pending orders can be cancelled.
+// @Tags         orders
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Order ID"
+// @Success      200  {object}  utils.Response{data=dto.OrderResponse}
+// @Failure      400  {object}  utils.Response
+// @Failure      403  {object}  utils.Response
+// @Failure      404  {object}  utils.Response
+// @Router       /orders/{id}/cancel [post]
 func (s *Server) CancelOrder(ctx *gin.Context) {
 	userID := ctx.GetUint("user_id")
 
@@ -128,7 +174,19 @@ func (s *Server) CancelOrder(ctx *gin.Context) {
 	utils.SuccessResponse(ctx, "Order cancelled successfully", order)
 }
 
-// UpdateOrderStatus updates the status of an order (admin only)
+// UpdateOrderStatus godoc
+// @Summary      Update order status (Admin)
+// @Description  Update the status of an order. Admin only.
+// @Tags         orders
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Order ID"
+// @Param        request body object{status=string} true "New status (pending, confirmed, shipped, delivered, cancelled)"
+// @Success      200  {object}  utils.Response{data=dto.OrderResponse}
+// @Failure      400  {object}  utils.Response
+// @Failure      404  {object}  utils.Response
+// @Router       /orders/{id}/status [put]
 func (s *Server) UpdateOrderStatus(ctx *gin.Context) {
 	orderIDStr := ctx.Param("id")
 	orderID, err := strconv.ParseUint(orderIDStr, 10, 64)

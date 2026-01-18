@@ -10,7 +10,16 @@ import (
 	"github.com/trenchesdeveloper/go-ai-store/internal/utils"
 )
 
-// GetCart returns the current user's cart
+// GetCart godoc
+// @Summary      Get user cart
+// @Description  Get the authenticated user's shopping cart
+// @Tags         cart
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  utils.Response{data=dto.CartResponse}
+// @Failure      500  {object}  utils.Response
+// @Router       /cart [get]
 func (s *Server) GetCart(ctx *gin.Context) {
 	userID := ctx.GetUint("user_id")
 
@@ -23,7 +32,19 @@ func (s *Server) GetCart(ctx *gin.Context) {
 	utils.SuccessResponse(ctx, "Cart retrieved successfully", cart)
 }
 
-// AddToCart adds a product to the current user's cart
+// AddToCart godoc
+// @Summary      Add item to cart
+// @Description  Add a product to the user's cart
+// @Tags         cart
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request body dto.AddToCartRequest true "Product and quantity"
+// @Success      200  {object}  utils.Response{data=dto.CartResponse}
+// @Failure      400  {object}  utils.Response
+// @Failure      404  {object}  utils.Response
+// @Failure      500  {object}  utils.Response
+// @Router       /cart/items [post]
 func (s *Server) AddToCart(ctx *gin.Context) {
 	userID := ctx.GetUint("user_id")
 
@@ -49,7 +70,20 @@ func (s *Server) AddToCart(ctx *gin.Context) {
 	utils.SuccessResponse(ctx, "Item added to cart", cart)
 }
 
-// UpdateCartItem updates the quantity of a cart item
+// UpdateCartItem godoc
+// @Summary      Update cart item quantity
+// @Description  Update the quantity of an item in the cart
+// @Tags         cart
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        itemId path int true "Cart Item ID"
+// @Param        request body dto.UpdateCartItemRequest true "New quantity"
+// @Success      200  {object}  utils.Response{data=dto.CartResponse}
+// @Failure      400  {object}  utils.Response
+// @Failure      404  {object}  utils.Response
+// @Failure      500  {object}  utils.Response
+// @Router       /cart/items/{itemId} [put]
 func (s *Server) UpdateCartItem(ctx *gin.Context) {
 	userID := ctx.GetUint("user_id")
 
@@ -84,7 +118,19 @@ func (s *Server) UpdateCartItem(ctx *gin.Context) {
 	utils.SuccessResponse(ctx, "Cart item updated", cart)
 }
 
-// RemoveCartItem removes an item from the cart
+// RemoveCartItem godoc
+// @Summary      Remove item from cart
+// @Description  Remove a specific item from the cart
+// @Tags         cart
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        itemId path int true "Cart Item ID"
+// @Success      200  {object}  utils.Response{data=dto.CartResponse}
+// @Failure      400  {object}  utils.Response
+// @Failure      404  {object}  utils.Response
+// @Failure      500  {object}  utils.Response
+// @Router       /cart/items/{itemId} [delete]
 func (s *Server) RemoveCartItem(ctx *gin.Context) {
 	userID := ctx.GetUint("user_id")
 
@@ -111,7 +157,16 @@ func (s *Server) RemoveCartItem(ctx *gin.Context) {
 	utils.SuccessResponse(ctx, "Cart item removed", cart)
 }
 
-// ClearCart removes all items from the cart
+// ClearCart godoc
+// @Summary      Clear cart
+// @Description  Remove all items from the cart
+// @Tags         cart
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  utils.Response
+// @Failure      500  {object}  utils.Response
+// @Router       /cart [delete]
 func (s *Server) ClearCart(ctx *gin.Context) {
 	userID := ctx.GetUint("user_id")
 

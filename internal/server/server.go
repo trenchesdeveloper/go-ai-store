@@ -5,6 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	db "github.com/trenchesdeveloper/go-ai-store/db/sqlc"
 	"github.com/trenchesdeveloper/go-ai-store/internal/config"
 	"github.com/trenchesdeveloper/go-ai-store/internal/interfaces"
@@ -68,6 +70,12 @@ func (s *Server) SetupRoutes() *gin.Engine {
 
 	// Setup routes
 	router.GET("/health", s.healthCheckHandler)
+
+	// Swagger documentation
+	router.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	router.StaticFile("/api-docs", "./docs/rapidoc.html")
+
 	api := router.Group("/api/v1")
 	{
 		auth := api.Group("/auth")
