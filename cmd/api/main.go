@@ -10,12 +10,30 @@ import (
 
 	"github.com/gin-gonic/gin"
 	db "github.com/trenchesdeveloper/go-ai-store/db/sqlc"
+	_ "github.com/trenchesdeveloper/go-ai-store/docs" // Swagger docs
 	"github.com/trenchesdeveloper/go-ai-store/internal/config"
 	"github.com/trenchesdeveloper/go-ai-store/internal/database"
 	"github.com/trenchesdeveloper/go-ai-store/internal/logger"
 	"github.com/trenchesdeveloper/go-ai-store/internal/server"
 )
 
+// @title           Go AI Store API
+// @version         1.0
+// @description     E-commerce API with products, cart, and orders management
+
+// @contact.name   Opeyemi Samuel
+// @contact.url  linkedin[https://linkedin.com/in/samuelopeyemi]
+
+// @licence.name Apache 2.0
+// @licence.url https://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host      localhost:8080
+// @BasePath  /api/v1
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Enter your bearer token in the format: Bearer {token}
 func main() {
 	log := logger.NewLogger()
 	cfg, err := config.LoadConfig()

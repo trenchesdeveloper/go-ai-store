@@ -1,4 +1,4 @@
-.PHONY: help build run dev lint fix migrate-up migrate-down migratecreate docker-up docker-down sqlc
+.PHONY: help build run dev lint fix migrate-up migrate-down migratecreate docker-up docker-down sqlc docs-generate
 
 help:
 	@echo "Available targets:"
@@ -11,6 +11,7 @@ help:
 	@echo "  docker-up    Start docker containers"
 	@echo "  docker-down    Stop docker containers"
 	@echo "  sqlc    Generate database queries"
+	@echo "  docs-generate    Generate Swagger documentation"
 
 build:
 	go build -o bin/api cmd/api/main.go
@@ -22,10 +23,10 @@ dev:
 	go run -race -tags dev cmd/api/main.go
 
 lint:
-	golangci-lint run ./...
+	golangci-lint run ./cmd/... ./internal/... ./db/...
 
 fix:
-	golangci-lint run --fix ./...
+	golangci-lint run --fix ./cmd/... ./internal/... ./db/...
 
 migrate-up:
 	migrate -path db/migrations -database "postgres://postgres:postgres@localhost:5432/ecommerce?sslmode=disable" up
@@ -44,3 +45,6 @@ docker-down:
 
 sqlc:
 	sqlc generate
+
+docs-generate:
+	swag init -g cmd/api/main.go -o docs

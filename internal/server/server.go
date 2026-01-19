@@ -1,12 +1,16 @@
 package server
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	db "github.com/trenchesdeveloper/go-ai-store/db/sqlc"
 	"github.com/trenchesdeveloper/go-ai-store/internal/config"
+	"github.com/trenchesdeveloper/go-ai-store/internal/events"
 	"github.com/trenchesdeveloper/go-ai-store/internal/interfaces"
 	"github.com/trenchesdeveloper/go-ai-store/internal/providers"
 	"github.com/trenchesdeveloper/go-ai-store/internal/services"
@@ -44,12 +48,18 @@ func NewServer(cfg *config.Config, logger *zerolog.Logger, store db.Store) (*Ser
 		uploadProvider = providers.NewLocalUploadProvider(cfg.Upload.UploadPath)
 	}
 
+	// Initialize event publisher
+	pub, err := events.NewEventPublisher(context.Background(), cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	cartService := services.NewCartService(store)
 	return &Server{
 		cfg:            cfg,
 		logger:         logger,
 		store:          store,
-		authService:    services.NewAuthService(store, cfg),
+		authService:    services.NewAuthService(store, cfg, pub),
 		userService:    services.NewUserService(store),
 		productService: services.NewProductService(store),
 		uploadService:  services.NewUploadService(uploadProvider),
@@ -68,6 +78,12 @@ func (s *Server) SetupRoutes() *gin.Engine {
 
 	// Setup routes
 	router.GET("/health", s.healthCheckHandler)
+
+	// Swagger documentation
+	router.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	router.StaticFile("/api-docs", "./docs/rapidoc.html")
+
 	api := router.Group("/api/v1")
 	{
 		auth := api.Group("/auth")

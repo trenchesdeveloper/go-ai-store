@@ -11,17 +11,20 @@ import (
 	db "github.com/trenchesdeveloper/go-ai-store/db/sqlc"
 	"github.com/trenchesdeveloper/go-ai-store/internal/config"
 	"github.com/trenchesdeveloper/go-ai-store/internal/dto"
+	"github.com/trenchesdeveloper/go-ai-store/internal/events"
 	"github.com/trenchesdeveloper/go-ai-store/internal/utils"
 )
 
 type AuthService struct {
 	db  db.Store
 	cfg *config.Config
+	pub events.EventPublisher
 }
 
-func NewAuthService(db db.Store, cfg *config.Config) *AuthService {
+func NewAuthService(db db.Store, cfg *config.Config, pub events.EventPublisher) *AuthService {
 	return &AuthService{
 		db:  db,
+		pub: pub,
 		cfg: cfg,
 	}
 }
@@ -82,6 +85,12 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest) (dto.Auth
 	if err := utils.VerifyPassword(user.Password, req.Password); err != nil {
 		return dto.AuthResponse{}, errors.New("invalid email or password")
 	}
+
+	// publish user_logged_in event
+	_ = s.pub.Publish(ctx, "user_logged_in", map[string]interface{}{
+		"user_id": user.ID,
+		"email":   user.Email,
+	}, nil)
 
 	// call generateAuthResponse function
 	return s.generateAuthResponse(ctx, &user)
