@@ -83,6 +83,8 @@ linters-settings:
     threshold: 150
 
 issues:
+  exclude-dirs:
+    - docs
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
@@ -105,3 +107,5 @@ issues:
     - path: cmd/
       linters:
         - gochecknoinits
+
+

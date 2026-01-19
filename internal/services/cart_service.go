@@ -102,10 +102,11 @@ func (s *CartService) AddToCart(ctx context.Context, userID int32, req dto.AddTo
 			ProductID: int32(req.ProductID), //#nosec G115 -- product ID from validated request
 			Quantity:  int32(req.Quantity),  //#nosec G115 -- quantity is validated
 		})
-		if restoreErr == nil {
+		switch {
+		case restoreErr == nil:
 			// Item was restored, update quantity if needed
 			_ = restoredItem // Successfully restored
-		} else if errors.Is(restoreErr, pgx.ErrNoRows) {
+		case errors.Is(restoreErr, pgx.ErrNoRows):
 			// No soft-deleted item exists, create new
 			_, err = s.store.CreateCartItem(ctx, db.CreateCartItemParams{
 				CartID:    cart.ID,
@@ -115,7 +116,7 @@ func (s *CartService) AddToCart(ctx context.Context, userID int32, req dto.AddTo
 			if err != nil {
 				return nil, fmt.Errorf("failed to create cart item: %w", err)
 			}
-		} else {
+		default:
 			return nil, fmt.Errorf("failed to restore cart item: %w", restoreErr)
 		}
 	}

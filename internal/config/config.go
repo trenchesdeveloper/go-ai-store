@@ -42,6 +42,7 @@ type AWSConfig struct {
 	AccessKeyID     string
 	SecretAccessKey string
 	S3Bucket        string
+	EventQueueName  string
 }
 
 type UploadConfig struct {
@@ -81,6 +82,7 @@ func LoadConfig() (*Config, error) {
 			AccessKeyID:     getEnv("AWS_S3_ACCESS_KEY", "localstack"),
 			SecretAccessKey: getEnv("AWS_S3_SECRET_KEY", "localstack"),
 			S3Bucket:        getEnv("AWS_S3_BUCKET", "ecommerce-uploads"),
+			EventQueueName:  getEnv("AWS_EVENT_QUEUE_NAME", "ecommerce-events"),
 		},
 		Upload: UploadConfig{
 			Provider:      getEnv("UPLOAD_PROVIDER", "local"),

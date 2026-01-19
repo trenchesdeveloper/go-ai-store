@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -9,6 +10,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	db "github.com/trenchesdeveloper/go-ai-store/db/sqlc"
 	"github.com/trenchesdeveloper/go-ai-store/internal/config"
+	"github.com/trenchesdeveloper/go-ai-store/internal/events"
 	"github.com/trenchesdeveloper/go-ai-store/internal/interfaces"
 	"github.com/trenchesdeveloper/go-ai-store/internal/providers"
 	"github.com/trenchesdeveloper/go-ai-store/internal/services"
@@ -46,12 +48,18 @@ func NewServer(cfg *config.Config, logger *zerolog.Logger, store db.Store) (*Ser
 		uploadProvider = providers.NewLocalUploadProvider(cfg.Upload.UploadPath)
 	}
 
+	// Initialize event publisher
+	pub, err := events.NewEventPublisher(context.Background(), cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	cartService := services.NewCartService(store)
 	return &Server{
 		cfg:            cfg,
 		logger:         logger,
 		store:          store,
-		authService:    services.NewAuthService(store, cfg),
+		authService:    services.NewAuthService(store, cfg, pub),
 		userService:    services.NewUserService(store),
 		productService: services.NewProductService(store),
 		uploadService:  services.NewUploadService(uploadProvider),
