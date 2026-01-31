@@ -14,7 +14,16 @@ help:
 	@echo "  docs-generate    Generate Swagger documentation"
 
 build:
-	go build -o bin/api cmd/api/main.go
+	@echo "Building all binaries..."
+	@mkdir -p bin
+	@for cmd in ./cmd/*/; do \
+		if [ -d "$$cmd" ] && [ -f "$$cmd/main.go" ]; then \
+			binary=$$(basename "$$cmd"); \
+			echo "Building $$binary..."; \
+			go build -o "bin/$$binary" "$$cmd"; \
+		fi; \
+	done
+	@echo "Build complete!"
 
 run:
 	go run cmd/api/main.go
