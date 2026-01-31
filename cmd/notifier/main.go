@@ -1,90 +1,188 @@
 package main
 
 import (
-	"fmt"
+	"context"
+	"encoding/json"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/rs/zerolog"
+	"github.com/trenchesdeveloper/go-ai-store/internal/config"
+	"github.com/trenchesdeveloper/go-ai-store/internal/events"
+	"github.com/trenchesdeveloper/go-ai-store/internal/notifications"
 )
 
 func main() {
-	fmt.Println("Notifier service started")
-	// Load AWS configuration
-	// cfg, err := config.LoadDefaultConfig(context.TODO())
-	// if err != nil {
-	// 	log.Fatalf("failed to load AWS config: %v", err)
-	// }
+	// Setup logger
+	log := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
-	// // Create SQS client
-	// sqsClient := sqs.NewFromConfig(cfg)
+	log.Info().Msg("Starting notifier service...")
 
-	// // Get SQS queue URL from environment variable
-	// queueURL := os.Getenv("SQS_QUEUE_URL")
-	// if queueURL == "" {
-	// 	log.Fatal("SQS_QUEUE_URL environment variable is not set")
-	// }
+	// Load configuration
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to load configuration")
+	}
 
-	// // Create email service
-	// emailService := notifications.NewEmailServiceWithConfig(notifications.SMTPConfig{
-	// 	Host:     os.Getenv("SMTP_HOST"),
-	// 	Port:     587,
-	// 	Username: os.Getenv("SMTP_USERNAME"),
-	// 	Password: os.Getenv("SMTP_PASSWORD"),
-	// 	From:     os.Getenv("SMTP_FROM"),
-	// })
+	// Create email service
+	emailService := notifications.NewEmailServiceWithConfig(notifications.SMTPConfig{
+		Host:     cfg.SMTP.Host,
+		Port:     cfg.SMTP.Port,
+		Username: cfg.SMTP.Username,
+		Password: cfg.SMTP.Password,
+		From:     cfg.SMTP.From,
+	})
 
-	// log.Println("Notifier service started, waiting for messages...")
+	log.Info().
+		Str("smtp_host", cfg.SMTP.Host).
+		Int("smtp_port", cfg.SMTP.Port).
+		Str("smtp_from", cfg.SMTP.From).
+		Msg("Email service configured")
 
-	// // Poll SQS queue for messages
-	// for {
-	// 	result, err := sqsClient.ReceiveMessage(context.TODO(), &sqs.ReceiveMessageInput{
-	// 		QueueUrl:            &queueURL,
-	// 		MaxNumberOfMessages: 1,
-	// 		WaitTimeSeconds:     20,
-	// 	})
-	// 	if err != nil {
-	// 		log.Printf("failed to receive message: %v", err)
-	// 		time.Sleep(5 * time.Second)
-	// 		continue
-	// 	}
+	// Create context with cancellation for graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
 
-	// 	for _, message := range result.Messages {
-	// 		log.Printf("processing message: %s", *message.MessageId)
+	// Create SQS subscriber
+	subscriber, err := events.NewEventSubscriber(ctx, cfg)
+	if err != nil {
+		cancel()
+		log.Fatal().Err(err).Msg("Failed to create event subscriber")
+	}
 
-	// 		// Parse the message body
-	// 		var notification notifications.Notification
-	// 		if err := json.Unmarshal([]byte(*message.Body), &notification); err != nil {
-	// 			log.Printf("failed to unmarshal notification: %v", err)
-	// 			continue
-	// 		}
+	// Subscribe to messages
+	messages, err := subscriber.Subscribe(ctx)
+	if err != nil {
+		cancel()
+		_ = subscriber.Close()
+		log.Fatal().Err(err).Msg("Failed to subscribe to events")
+	}
 
-	// 		// Send the email based on notification type
-	// 		var err error
-	// 		switch notification.Type {
-	// 		case notifications.NotificationTypeWelcome:
-	// 			err = emailService.SendWelcomeEmail(notification.Email, notification.Username)
-	// 		case notifications.NotificationTypePasswordReset:
-	// 			err = emailService.SendPasswordResetEmail(notification.Email, notification.ResetToken)
-	// 		case notifications.NotificationTypeOrderConfirmation:
-	// 			err = emailService.SendOrderConfirmationEmail(notification.Email, notification.OrderID, notification.Total)
-	// 		case notifications.NotificationTypeLoginNotification:
-	// 			err = emailService.SendLoginNotificationEmail(notification.Email, notification.Username, notification.IPAddress, notification.UserAgent, notification.LoginTime)
-	// 		default:
-	// 			log.Printf("unknown notification type: %s", notification.Type)
-	// 		}
+	// Setup defer for cleanup (after all potential Fatal exits)
+	defer cancel()
+	defer func() {
+		if err := subscriber.Close(); err != nil {
+			log.Error().Err(err).Msg("Failed to close subscriber")
+		}
+	}()
 
-	// 		if err != nil {
-	// 			log.Printf("failed to send notification: %v", err)
-	// 			continue
-	// 		}
+	log.Info().
+		Str("queue", cfg.AWS.EventQueueName).
+		Msg("Subscribed to SQS queue, waiting for messages...")
 
-	// 		log.Printf("successfully sent notification: %s", *message.MessageId)
+	// Setup graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	// 		// Delete the message from the queue
-	// 		_, err = sqsClient.DeleteMessage(context.TODO(), &sqs.DeleteMessageInput{
-	// 			QueueUrl:      &queueURL,
-	// 			ReceiptHandle: message.ReceiptHandle,
-	// 		})
-	// 		if err != nil {
-	// 			log.Printf("failed to delete message: %v", err)
-	// 		}
-	// 	}
-	// }
+	// Process messages
+	go func() {
+		for msg := range messages {
+			log.Info().
+				Str("message_id", msg.UUID).
+				Msg("Processing message")
+
+			// Parse the notification
+			var notification notifications.Notification
+			if err := json.Unmarshal(msg.Payload, &notification); err != nil {
+				log.Error().
+					Err(err).
+					Str("message_id", msg.UUID).
+					Msg("Failed to unmarshal notification")
+				msg.Nack()
+				continue
+			}
+
+			// Get event type from metadata if not in payload
+			eventType := notification.Type
+			if eventType == "" {
+				eventType = notifications.NotificationType(msg.Metadata.Get("type"))
+			}
+
+			// Send email based on notification type
+			var sendErr error
+			switch eventType {
+			case notifications.NotificationTypeWelcome:
+				log.Info().
+					Str("type", string(eventType)).
+					Str("email", notification.Email).
+					Msg("Sending welcome email")
+				sendErr = emailService.SendWelcomeEmail(notification.Email, notification.Username)
+
+			case notifications.NotificationTypePasswordReset:
+				log.Info().
+					Str("type", string(eventType)).
+					Str("email", notification.Email).
+					Msg("Sending password reset email")
+				sendErr = emailService.SendPasswordResetEmail(notification.Email, notification.ResetToken)
+
+			case notifications.NotificationTypeOrderConfirmation:
+				log.Info().
+					Str("type", string(eventType)).
+					Str("email", notification.Email).
+					Str("order_id", notification.OrderID).
+					Msg("Sending order confirmation email")
+				sendErr = emailService.SendOrderConfirmationEmail(notification.Email, notification.OrderID, notification.Total)
+
+			case notifications.NotificationTypeLoginNotification:
+				log.Info().
+					Str("type", string(eventType)).
+					Str("email", notification.Email).
+					Msg("Sending login notification email")
+				sendErr = emailService.SendLoginNotificationEmail(
+					notification.Email,
+					notification.Username,
+					notification.IPAddress,
+					notification.UserAgent,
+					notification.LoginTime,
+				)
+
+			case notifications.NotificationTypeUserLoggedIn:
+				log.Info().
+					Str("type", string(eventType)).
+					Str("email", notification.Email).
+					Int64("user_id", notification.UserID).
+					Msg("Sending user logged in notification email")
+				// Use login notification email with basic info
+				sendErr = emailService.SendLoginNotificationEmail(
+					notification.Email,
+					notification.Username,
+					"", // IP not available in this event
+					"", // User agent not available
+					time.Now().Format(time.RFC3339),
+				)
+
+			default:
+				log.Warn().
+					Str("type", string(eventType)).
+					Msg("Unknown notification type")
+				msg.Ack()
+				continue
+			}
+
+			if sendErr != nil {
+				log.Error().
+					Err(sendErr).
+					Str("message_id", msg.UUID).
+					Str("type", string(notification.Type)).
+					Msg("Failed to send email")
+				msg.Nack()
+				continue
+			}
+
+			log.Info().
+				Str("message_id", msg.UUID).
+				Str("type", string(notification.Type)).
+				Str("email", notification.Email).
+				Msg("Email sent successfully")
+
+			msg.Ack()
+		}
+	}()
+
+	// Wait for shutdown signal
+	<-quit
+	log.Info().Msg("Shutting down notifier service...")
+	cancel()
+	log.Info().Msg("Notifier service stopped")
 }
