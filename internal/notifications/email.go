@@ -45,7 +45,7 @@ func (s *EmailService) Send(email Email) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to SMTP server: %w", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Send EHLO/HELO
 	if err := client.Hello("localhost"); err != nil {
@@ -56,6 +56,7 @@ func (s *EmailService) Send(email Email) error {
 	if ok, _ := client.Extension("STARTTLS"); ok {
 		tlsConfig := &tls.Config{
 			ServerName: s.config.Host,
+			MinVersion: tls.VersionTLS12,
 		}
 		if err := client.StartTLS(tlsConfig); err != nil {
 			return fmt.Errorf("failed to start TLS: %w", err)
@@ -105,7 +106,7 @@ func (s *EmailService) Send(email Email) error {
 	msg.WriteString(email.Body)
 
 	if _, err := wc.Write(msg.Bytes()); err != nil {
-		wc.Close()
+		_ = wc.Close()
 		return fmt.Errorf("failed to write email body: %w", err)
 	}
 
@@ -158,7 +159,7 @@ func (s *EmailService) SendWelcomeEmail(to string, username string) error {
 
 // SendPasswordResetEmail sends a password reset email
 func (s *EmailService) SendPasswordResetEmail(to string, resetToken string) error {
-	resetURL := fmt.Sprintf("%s/reset-password?token=%s",  "http://localhost:8000", resetToken)
+	resetURL := fmt.Sprintf("%s/reset-password?token=%s", "http://localhost:8000", resetToken)
 
 	body := fmt.Sprintf(`
 		<h1>Password Reset Request</h1>
