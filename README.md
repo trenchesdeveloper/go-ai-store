@@ -1,6 +1,6 @@
 # Go AI Store
 
-A production-ready e-commerce REST API built with Go, featuring JWT authentication, PostgreSQL, event-driven architecture, and Docker containerization.
+A production-ready e-commerce API built with Go, featuring **REST and GraphQL** APIs, JWT authentication, PostgreSQL, event-driven architecture, and Docker containerization.
 
 ## Architecture
 
@@ -12,9 +12,11 @@ graph TB
 
     subgraph "API Gateway"
         A[Gin API Server<br/>:8080]
+        GQL[GraphQL API]
     end
 
-    subgraph "Services"
+    subgraph "Services Layer"
+        INT[Service Interfaces]
         AS[Auth Service]
         US[User Service]
         PS[Product Service]
@@ -37,7 +39,9 @@ graph TB
     end
 
     C --> A
-    A --> AS & US & PS & CS & OS & UP
+    A --> GQL
+    A & GQL --> INT
+    INT --> AS & US & PS & CS & OS & UP
     AS --> PUB
     PUB --> SQS
     SQS --> SUB
@@ -49,21 +53,32 @@ graph TB
 
 ## Features
 
+- **Dual API Architecture**
+  - RESTful API with OpenAPI/Swagger documentation
+  - GraphQL API with Playground UI
+  - Unified service layer via interfaces
+
 - **Authentication & Authorization**
   - JWT-based authentication with access/refresh tokens
   - Role-based access control (User/Admin)
   - Secure password hashing with bcrypt
 
 - **E-commerce Core**
-  - Products with categories
+  - Products with categories and image management
   - Shopping cart management
   - Order processing with status tracking
+  - Timestamp tracking (createdAt/updatedAt) on all entities
   - Image uploads to S3
 
 - **Event-Driven Architecture**
   - Watermill message broker integration
   - SQS-based event queue
   - Async email notifications
+
+- **Clean Architecture**
+  - Service interfaces for testability and mocking
+  - Dependency injection throughout
+  - Type-safe database access with sqlc
 
 - **Infrastructure**
   - PostgreSQL with migrations
@@ -77,6 +92,7 @@ graph TB
 |----------|------------|
 | Language | Go 1.25 |
 | Framework | Gin |
+| GraphQL | gqlgen |
 | Database | PostgreSQL 15 + pgx/v5 |
 | ORM | sqlc (type-safe SQL) |
 | Auth | JWT (golang-jwt/v5) |
@@ -223,8 +239,92 @@ make docker-down
 | Endpoint | Description |
 |----------|-------------|
 | `/health` | Health check |
+| `/playground` | GraphQL Playground |
+| `/graphql` | GraphQL API endpoint |
 | `/docs/` | Swagger UI |
 | `/api-docs` | RapiDoc UI |
+
+## GraphQL API
+
+The GraphQL API provides a flexible, type-safe alternative to the REST endpoints.
+
+### Playground
+
+Access the interactive GraphQL Playground at: `http://localhost:8080/playground`
+
+### Example Queries
+
+```graphql
+# Get current user
+query {
+  me {
+    id
+    email
+    firstName
+    createdAt
+    updatedAt
+  }
+}
+
+# List products
+query {
+  products(page: 1, limit: 10) {
+    id
+    name
+    price
+    category {
+      name
+    }
+  }
+}
+
+# Get user's cart
+query {
+  cart {
+    id
+    total
+    cartItems {
+      product {
+        name
+        price
+      }
+      quantity
+    }
+  }
+}
+```
+
+### Example Mutations
+
+```graphql
+# Login
+mutation {
+  login(input: { email: "user@example.com", password: "password" }) {
+    accessToken
+    refreshToken
+    user {
+      email
+    }
+  }
+}
+
+# Add to cart
+mutation {
+  addToCart(input: { productId: 1, quantity: 2 }) {
+    id
+    total
+  }
+}
+
+# Create order
+mutation {
+  createOrder {
+    id
+    status
+    totalAmount
+  }
+}
+```
 
 ## Event System
 
