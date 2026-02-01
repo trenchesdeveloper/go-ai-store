@@ -117,6 +117,11 @@ go-ai-store/
 │   ├── docker-compose.yml
 │   └── Dockerfile
 ├── docs/                 # Swagger documentation
+├── graph/
+│   ├── resolver/         # GraphQL resolvers
+│   ├── schema/           # GraphQL schema files (.graphqls)
+│   ├── generated.go      # gqlgen generated code
+│   └── helpers.go        # Auth middleware for GraphQL
 ├── internal/
 │   ├── config/           # Configuration loading
 │   ├── database/         # Database connection
@@ -129,6 +134,7 @@ go-ai-store/
 │   ├── server/           # HTTP handlers & routes
 │   ├── services/         # Business logic
 │   └── utils/            # Helpers (JWT, password, etc.)
+├── gqlgen.yml            # GraphQL code generation config
 ├── Makefile
 ├── sqlc.yaml
 └── go.mod
@@ -365,6 +371,8 @@ erDiagram
     categories ||--o{ products : contains
     products ||--o{ cart_items : in
     products ||--o{ order_items : in
+    products ||--o{ product_images : has
+    users ||--o{ idempotency_keys : has
 
     users {
         int id PK
@@ -375,6 +383,17 @@ erDiagram
         string phone
         enum role
         boolean is_active
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    categories {
+        int id PK
+        string name
+        text description
+        boolean is_active
+        timestamp created_at
+        timestamp updated_at
     }
 
     products {
@@ -383,8 +402,37 @@ erDiagram
         text description
         decimal price
         int stock
-        string image_url
+        string sku UK
         int category_id FK
+        boolean is_active
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    product_images {
+        int id PK
+        int product_id FK
+        string url
+        string alt_text
+        boolean is_primary
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    carts {
+        int id PK
+        int user_id FK UK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    cart_items {
+        int id PK
+        int cart_id FK
+        int product_id FK
+        int quantity
+        timestamp created_at
+        timestamp updated_at
     }
 
     orders {
@@ -392,8 +440,33 @@ erDiagram
         int user_id FK
         decimal total_amount
         enum status
-        text shipping_address
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    order_items {
+        int id PK
+        int order_id FK
+        int product_id FK
+        int quantity
+        decimal price
+        timestamp created_at
+    }
+
+    refresh_tokens {
+        int id PK
+        int user_id FK
+        string token UK
+        timestamp expires_at
+        timestamp created_at
+    }
+
+    idempotency_keys {
+        int id PK
+        int user_id FK
         string idempotency_key UK
+        int order_id FK
+        timestamp created_at
     }
 ```
 
@@ -452,7 +525,8 @@ MAX_UPLOAD_SIZE=10485760
 | `make docker-up` | Start Docker services |
 | `make docker-down` | Stop Docker services |
 | `make sqlc` | Generate database code |
-| `make docs-generate` | Generate Swagger docs |
+| `make graphql-generate` | Generate GraphQL code |
+| `make swagger` | Generate Swagger docs |
 
 ## Services (Docker)
 
