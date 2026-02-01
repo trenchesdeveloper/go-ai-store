@@ -1,4 +1,4 @@
-.PHONY: help build run dev lint fix migrate-up migrate-down migratecreate docker-up docker-down sqlc docs-generate graphql-generate
+.PHONY: help build run dev lint fix migrate-up migrate-down migratecreate docker-up docker-down sqlc docs-generate graphql-generate test test-coverage test-services test-utils test-func
 
 help:
 	@echo "Available targets:"
@@ -6,6 +6,11 @@ help:
 	@echo "  run      Run the API binary"
 	@echo "  dev      Run the API binary with race detection and dev tag"
 	@echo "  lint     Run linter on the codebase"
+	@echo "  test     Run all tests"
+	@echo "  test-coverage  Run tests with HTML coverage report"
+	@echo "  test-services  Run tests for services package"
+	@echo "  test-utils  Run tests for utils package"
+	@echo "  test-func  Show function-level coverage breakdown"
 	@echo "  migrate-up    Run database migrations"
 	@echo "  migrate-down    Rollback database migrations"
 	@echo "  docker-up    Start docker containers"
@@ -38,6 +43,26 @@ lint:
 fix:
 	golangci-lint run --fix ./cmd/... ./internal/... ./db/...
 
+test:
+	go test -v -race ./...
+
+test-coverage:
+	go test -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
+
+test-services:
+	go test -v -race -coverprofile=coverage.out ./internal/services/...
+	@go tool cover -func=coverage.out | grep -E "^total|services"
+
+test-utils:
+	go test -v -race -coverprofile=coverage.out ./internal/utils/...
+	@go tool cover -func=coverage.out | grep -E "^total|utils"
+
+test-func:
+	go test -coverprofile=coverage.out ./internal/...
+	@go tool cover -func=coverage.out
+
 migrate-up:
 	migrate -path db/migrations -database "postgres://postgres:postgres@localhost:5432/ecommerce?sslmode=disable" up
 
@@ -62,3 +87,4 @@ docs-generate:
 graphql-generate:
 	@go get github.com/99designs/gqlgen@latest
 	@go run github.com/99designs/gqlgen generate
+

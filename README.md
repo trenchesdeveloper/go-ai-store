@@ -520,13 +520,18 @@ MAX_UPLOAD_SIZE=10485760
 | `make dev` | Run with race detector |
 | `make lint` | Run linter |
 | `make fix` | Auto-fix lint issues |
+| `make test` | Run all tests |
+| `make test-coverage` | Generate HTML coverage report |
+| `make test-services` | Run service tests with coverage |
+| `make test-utils` | Run utility tests with coverage |
+| `make test-func` | Show function-level coverage |
 | `make migrate-up` | Run migrations |
 | `make migrate-down` | Rollback migrations |
 | `make docker-up` | Start Docker services |
 | `make docker-down` | Stop Docker services |
 | `make sqlc` | Generate database code |
 | `make graphql-generate` | Generate GraphQL code |
-| `make swagger` | Generate Swagger docs |
+| `make docs-generate` | Generate Swagger docs |
 
 ## Services (Docker)
 
@@ -563,17 +568,99 @@ make docs-generate
 
 ## Testing
 
+### Run Tests
+
 ```bash
-# View emails in Mailpit
+# Run all tests
+make test
+
+# Run tests with HTML coverage report
+make test-coverage
+
+# Run only service tests with coverage
+make test-services
+
+# Run only utility tests with coverage
+make test-utils
+
+# Show function-level coverage breakdown
+make test-func
+```
+
+### Test Coverage
+
+The project maintains comprehensive test coverage for core packages:
+
+| Package | Coverage | Description |
+|---------|----------|-------------|
+| `internal/utils` | 88.2% | JWT, password hashing, response helpers |
+| `internal/services` | 61.7% | Business logic services |
+
+### Test Structure
+
+Tests use the [testify](https://github.com/stretchr/testify) library for assertions and mocking:
+
+```
+internal/
+├── services/
+│   ├── auth_service.go
+│   ├── auth_service_test.go      # AuthService tests
+│   ├── cart_service.go
+│   ├── cart_service_test.go      # CartService tests
+│   ├── order_service.go
+│   ├── order_service_test.go     # OrderService tests
+│   ├── product_service.go
+│   ├── product_service_test.go   # ProductService tests
+│   ├── upload_service.go
+│   ├── upload_service_test.go    # UploadService tests
+│   └── user_service_test.go      # UserService tests
+└── utils/
+    ├── jwt_test.go               # JWT token tests
+    ├── password_test.go          # Password hashing tests
+    └── response_test.go          # Response helper tests
+```
+
+### Test Examples
+
+```go
+// Table-driven test example
+func TestAuthService_Login(t *testing.T) {
+    tests := []struct {
+        name      string
+        req       dto.LoginRequest
+        setupMock func(m *MockStore)
+        wantErr   bool
+    }{
+        {
+            name: "success",
+            req:  dto.LoginRequest{Email: "test@example.com", Password: "password"},
+            setupMock: func(m *MockStore) {
+                m.On("GetUserByEmail", mock.Anything, "test@example.com").
+                    Return(testUser, nil)
+            },
+        },
+    }
+    // ...
+}
+```
+
+### Email Testing (Mailpit)
+
+```bash
+# View emails in Mailpit UI
 open http://localhost:8025
 
+# Check notifier logs
+docker logs notifier --tail 20
+```
+
+### Manual API Testing
+
+```bash
 # Test login flow
 curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email": "user@example.com", "password": "password"}'
-
-# Check notifier logs
-docker logs notifier --tail 20
 ```
 
 ## License
