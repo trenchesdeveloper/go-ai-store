@@ -28,12 +28,12 @@ type Server struct {
 	cfg            *config.Config
 	logger         *zerolog.Logger
 	store          db.Store
-	authService    *services.AuthService
-	userService    *services.UserService
-	productService *services.ProductService
+	authService    interfaces.AuthServicer
+	userService    interfaces.UserServicer
+	productService interfaces.ProductServicer
 	uploadService  *services.UploadService
-	cartService    *services.CartService
-	orderService   *services.OrderService
+	cartService    interfaces.CartServicer
+	orderService   interfaces.OrderServicer
 }
 
 func NewServer(cfg *config.Config, logger *zerolog.Logger, store db.Store) (*Server, error) {
