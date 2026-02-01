@@ -1,0 +1,53 @@
+# Queries
+type Query {
+  # User
+  me: User!
+
+  # Products
+  products(limit: Int, offset: Int): [Product!]!
+  product(id: Uint!): Product
+
+  # Categories
+  categories: [Category!]!
+  category(id: ID!): Category
+
+  # Cart
+  cart: Cart!
+
+  # Orders
+  orders(limit: Int, offset: Int): [Order!]!
+  order(id: Uint!): Order
+}
+
+# Mutations
+type Mutation {
+  # Auth
+  register(input: RegisterInput!): AuthPayload!
+  login(input: LoginInput!): AuthPayload!
+  refreshToken(input: RefreshTokenInput!): AuthPayload!
+  logout(refreshToken: String!): Boolean!
+
+  # Profile
+  updateProfile(input: UpdateProfileInput!): User!
+
+  # Products (Admin)
+  createProduct(input: CreateProductInput!): Product!
+  updateProduct(id: Uint!, input: UpdateProductInput!): Product!
+  deleteProduct(id: Uint!): Boolean!
+
+  # Categories (Admin)
+  createCategory(input: CreateCategoryInput!): Category!
+  updateCategory(id: ID!, input: UpdateCategoryInput!): Category!
+  deleteCategory(id: ID!): Boolean!
+
+  # Cart
+  addToCart(input: AddToCartInput!): Cart!
+  updateCartItem(itemId: Uint!, input: UpdateCartItemInput!): Cart!
+  removeCartItem(itemId: Uint!): Cart!
+  clearCart: Cart!
+
+  # Orders
+  createOrder(input: CreateOrderInput!): Order!
+  cancelOrder(id: Uint!): Order!
+  updateOrderStatus(id: Uint!, input: UpdateOrderStatusInput!): Order!
+}

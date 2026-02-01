@@ -1,0 +1,89 @@
+# User Types
+type User {
+  id: ID!
+  email: String!
+  firstName: String!
+  lastName: String!
+  phone: String
+  role: String!
+  isActive: Boolean!
+}
+
+type AuthPayload {
+  user: User!
+  accessToken: String!
+  refreshToken: String!
+}
+
+# Product Types
+type Product {
+  id: Uint!
+  name: String!
+  description: String!
+  price: Float!
+  stock: Int!
+  categoryId: Uint!
+  sku: String!
+  isActive: Boolean!
+  category: Category!
+  images: [ProductImage!]!
+}
+
+type Category {
+  id: ID!
+  name: String!
+  description: String!
+  isActive: Boolean!
+}
+
+type ProductImage {
+  id: Uint!
+  url: String!
+  altText: String!
+  isPrimary: Boolean!
+}
+
+# Cart Types
+type Cart {
+  id: Uint!
+  userId: Uint!
+  cartItems: [CartItem!]!
+  total: Float!
+}
+
+type CartItem {
+  id: Uint!
+  product: Product!
+  quantity: Int!
+  subtotal: Float!
+}
+
+# Order Types
+type Order {
+  id: Uint!
+  userId: Uint!
+  status: String!
+  totalAmount: Float!
+  orderItems: [OrderItem!]!
+  createdAt: String!
+}
+
+type OrderItem {
+  id: Uint!
+  product: Product!
+  quantity: Int!
+  price: Float!
+}
+
+# Enums
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+# Define Uint scalar
+scalar Uint
