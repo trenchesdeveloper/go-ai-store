@@ -54,6 +54,20 @@ func (s *ProductService) GetCategories(ctx context.Context) ([]dto.CategoryRespo
 	return categoryResponses, nil
 }
 
+// GetCategoryByID retrieves a single category by ID
+func (s *ProductService) GetCategoryByID(ctx context.Context, id uint) (*dto.CategoryResponse, error) {
+	category, err := s.store.GetCategoryByID(ctx, int32(id)) //#nosec G115 -- id from validated request
+	if err != nil {
+		return nil, err
+	}
+	return &dto.CategoryResponse{
+		ID:          int64(category.ID),
+		Name:        category.Name,
+		Description: category.Description.String,
+		IsActive:    category.IsActive.Bool,
+	}, nil
+}
+
 func (s *ProductService) UpdateCategory(ctx context.Context, req dto.UpdateCategoryRequest) (*dto.CategoryResponse, error) {
 	// Get existing category to preserve IsActive if not provided
 	existing, err := s.store.GetCategoryByID(ctx, req.ID)

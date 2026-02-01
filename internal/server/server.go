@@ -4,28 +4,36 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/extension"
+	"github.com/99designs/gqlgen/graphql/handler/lru"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
+	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	db "github.com/trenchesdeveloper/go-ai-store/db/sqlc"
+	"github.com/trenchesdeveloper/go-ai-store/graph"
+	resolver "github.com/trenchesdeveloper/go-ai-store/graph/resolver"
 	"github.com/trenchesdeveloper/go-ai-store/internal/config"
 	"github.com/trenchesdeveloper/go-ai-store/internal/events"
 	"github.com/trenchesdeveloper/go-ai-store/internal/interfaces"
 	"github.com/trenchesdeveloper/go-ai-store/internal/providers"
 	"github.com/trenchesdeveloper/go-ai-store/internal/services"
+	"github.com/vektah/gqlparser/v2/ast"
 )
 
 type Server struct {
 	cfg            *config.Config
 	logger         *zerolog.Logger
 	store          db.Store
-	authService    *services.AuthService
-	userService    *services.UserService
-	productService *services.ProductService
+	authService    interfaces.AuthServicer
+	userService    interfaces.UserServicer
+	productService interfaces.ProductServicer
 	uploadService  *services.UploadService
-	cartService    *services.CartService
-	orderService   *services.OrderService
+	cartService    interfaces.CartServicer
+	orderService   interfaces.OrderServicer
 }
 
 func NewServer(cfg *config.Config, logger *zerolog.Logger, store db.Store) (*Server, error) {
@@ -83,6 +91,19 @@ func (s *Server) SetupRoutes() *gin.Engine {
 	router.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	router.StaticFile("/api-docs", "./docs/rapidoc.html")
+
+	// GraphQL endpoint with auth middleware
+	graphqlHandler := s.graphqlHandler()
+	router.POST("/graphql", func(c *gin.Context) {
+		graphqlHandler.ServeHTTP(c.Writer, c.Request)
+	})
+	router.GET("/graphql", func(c *gin.Context) {
+		graphqlHandler.ServeHTTP(c.Writer, c.Request)
+	})
+	// GraphQL playground (development only)
+	router.GET("/playground", func(c *gin.Context) {
+		playground.Handler("GraphQL Playground", "/graphql").ServeHTTP(c.Writer, c.Request)
+	})
 
 	api := router.Group("/api/v1")
 	{
@@ -172,4 +193,38 @@ func (s *Server) healthCheckHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status": "ok",
 	})
+}
+
+// graphqlHandler creates and returns the GraphQL handler
+func (s *Server) graphqlHandler() http.Handler {
+	// Create resolver with all service dependencies
+	res := resolver.NewResolver(
+		s.authService,
+		s.userService,
+		s.productService,
+		s.cartService,
+		s.orderService,
+	)
+
+	// Create GraphQL server with explicit configuration (production-ready)
+	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: res}))
+
+	// Add transports
+	srv.AddTransport(transport.Options{})
+	srv.AddTransport(transport.GET{})
+	srv.AddTransport(transport.POST{})
+
+	// Enable query caching
+	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))
+
+	// Enable introspection
+	srv.Use(extension.Introspection{})
+
+	// Enable automatic persisted queries (Apollo-style APQ)
+	srv.Use(extension.AutomaticPersistedQuery{
+		Cache: lru.New[string](100),
+	})
+
+	// Wrap with auth middleware
+	return graph.AuthMiddleware(s.cfg.JWT.Secret)(srv)
 }

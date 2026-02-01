@@ -444,7 +444,8 @@ func (s *OrderService) buildOrderResponse(ctx context.Context, order db.Order) (
 		Status:      string(order.Status.OrderStatus),
 		TotalAmount: totalFloat.Float64,
 		OrderItems:  orderItemResponses,
-		CreatedAt:   order.CreatedAt.Time.Format("2006-01-02T15:04:05Z07:00"),
+		CreatedAt:   order.CreatedAt.Time,
+		UpdatedAt:   order.UpdatedAt.Time,
 	}, nil
 }
 

@@ -1,0 +1,130 @@
+# User Types
+type User {
+  id: ID!
+  email: String!
+  firstName: String!
+  lastName: String!
+  phone: String
+  role: String!
+  isActive: Boolean!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type AuthPayload {
+  user: User!
+  accessToken: String!
+  refreshToken: String!
+}
+
+type Product {
+  id: Uint!
+  name: String!
+  description: String!
+  price: Float!
+  stock: Int!
+  categoryId: Uint!
+  sku: String!
+  isActive: Boolean!
+  category: Category!
+  images: [ProductImage!]!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type Category {
+  id: ID!
+  name: String!
+  description: String!
+  isActive: Boolean!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type ProductImage {
+  id: Uint!
+  url: String!
+  altText: String!
+  isPrimary: Boolean!
+  createdAt: Time!
+}
+
+# Product Connection (Relay-style pagination)
+type ProductConnection {
+  edges: [ProductEdge!]!
+  pageInfo: PageInfo!
+}
+
+type ProductEdge {
+  node: Product!
+}
+
+# Cart Types
+type Cart {
+  id: Uint!
+  userId: Uint!
+  cartItems: [CartItem!]!
+  total: Float!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type CartItem {
+  id: Uint!
+  product: Product!
+  quantity: Int!
+  subtotal: Float!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+# Order Types
+type Order {
+  id: Uint!
+  userId: Uint!
+  status: String!
+  totalAmount: Float!
+  orderItems: [OrderItem!]!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type OrderItem {
+  id: Uint!
+  product: Product!
+  quantity: Int!
+  price: Float!
+  createdAt: Time!
+}
+
+# Order Connection (Relay-style pagination)
+type OrderConnection {
+  edges: [OrderEdge!]!
+  pageInfo: PageInfo!
+}
+
+type OrderEdge {
+  node: Order!
+}
+
+# Pagination
+type PageInfo {
+  page: Int!
+  limit: Int!
+  total: Int!
+  totalPages: Int!
+}
+
+# Enums
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+# Custom Scalars
+scalar Uint
+scalar Time

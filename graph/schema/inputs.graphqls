@@ -1,0 +1,75 @@
+# Auth Input Types
+input RegisterInput {
+  email: String!
+  password: String!
+  firstName: String!
+  lastName: String!
+  phone: String
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+input RefreshTokenInput {
+  refreshToken: String!
+}
+
+input UpdateProfileInput {
+  firstName: String!
+  lastName: String!
+  phone: String
+}
+
+# Product Input Types
+input CreateProductInput {
+  name: String!
+  description: String
+  price: Float!
+  stock: Int!
+  categoryId: ID!
+  sku: String!
+}
+
+input UpdateProductInput {
+  name: String!
+  description: String
+  price: Float!
+  stock: Int!
+  categoryId: ID!
+  isActive: Boolean
+}
+
+# Category Input Types
+input CreateCategoryInput {
+  name: String!
+  description: String
+}
+
+input UpdateCategoryInput {
+  id: ID!
+  name: String!
+  description: String
+  isActive: Boolean
+}
+
+# Cart Input Types
+input AddToCartInput {
+  productId: Uint!
+  quantity: Int!
+}
+
+input UpdateCartItemInput {
+  quantity: Int!
+}
+
+# Order Input Types
+input CreateOrderInput {
+  shippingAddress: String!
+  idempotencyKey: String
+}
+
+input UpdateOrderStatusInput {
+  status: OrderStatus!
+}

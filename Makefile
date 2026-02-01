@@ -1,4 +1,4 @@
-.PHONY: help build run dev lint fix migrate-up migrate-down migratecreate docker-up docker-down sqlc docs-generate
+.PHONY: help build run dev lint fix migrate-up migrate-down migratecreate docker-up docker-down sqlc docs-generate graphql-generate
 
 help:
 	@echo "Available targets:"
@@ -12,6 +12,7 @@ help:
 	@echo "  docker-down    Stop docker containers"
 	@echo "  sqlc    Generate database queries"
 	@echo "  docs-generate    Generate Swagger documentation"
+	@echo "  graphql-generate    Generate GraphQL code"
 
 build:
 	@echo "Building all binaries..."
@@ -57,3 +58,7 @@ sqlc:
 
 docs-generate:
 	swag init -g cmd/api/main.go -o docs
+
+graphql-generate:
+	@go get github.com/99designs/gqlgen@latest
+	@go run github.com/99designs/gqlgen generate
