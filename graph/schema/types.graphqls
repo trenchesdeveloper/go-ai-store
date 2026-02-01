@@ -43,6 +43,16 @@ type ProductImage {
   isPrimary: Boolean!
 }
 
+# Product Connection (Relay-style pagination)
+type ProductConnection {
+  edges: [ProductEdge!]!
+  pageInfo: PageInfo!
+}
+
+type ProductEdge {
+  node: Product!
+}
+
 # Cart Types
 type Cart {
   id: Uint!
@@ -65,7 +75,7 @@ type Order {
   status: String!
   totalAmount: Float!
   orderItems: [OrderItem!]!
-  createdAt: String!
+  createdAt: Time!
 }
 
 type OrderItem {
@@ -73,6 +83,24 @@ type OrderItem {
   product: Product!
   quantity: Int!
   price: Float!
+}
+
+# Order Connection (Relay-style pagination)
+type OrderConnection {
+  edges: [OrderEdge!]!
+  pageInfo: PageInfo!
+}
+
+type OrderEdge {
+  node: Order!
+}
+
+# Pagination
+type PageInfo {
+  page: Int!
+  limit: Int!
+  total: Int!
+  totalPages: Int!
 }
 
 # Enums
@@ -85,5 +113,6 @@ enum OrderStatus {
   CANCELLED
 }
 
-# Define Uint scalar
+# Custom Scalars
 scalar Uint
+scalar Time

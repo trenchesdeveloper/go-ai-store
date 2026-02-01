@@ -121,7 +121,6 @@ call_argument_directives_with_null: true
 # gqlgen will search for any type names in the schema in these go packages
 # if they match it will use them, otherwise it will generate them.
 autobind:
-  - "github.com/trenchesdeveloper/go-ai-store/graph/model"
   - "github.com/trenchesdeveloper/go-ai-store/internal/dto"
   - "github.com/trenchesdeveloper/go-ai-store/db/sqlc"
 
@@ -153,6 +152,9 @@ models:
   Uint64:
     model:
       - github.com/99designs/gqlgen/graphql.Uint64
+  Time:
+    model:
+      - github.com/99designs/gqlgen/graphql.Time
 
   # Auth types
   User:

@@ -4,7 +4,7 @@ type Query {
   me: User!
 
   # Products
-  products(limit: Int, offset: Int): [Product!]!
+  products(page: Int, limit: Int): ProductConnection!
   product(id: Uint!): Product
 
   # Categories
@@ -15,7 +15,7 @@ type Query {
   cart: Cart!
 
   # Orders
-  orders(limit: Int, offset: Int): [Order!]!
+  orders(page: Int, limit: Int): OrderConnection!
   order(id: Uint!): Order
 }
 
