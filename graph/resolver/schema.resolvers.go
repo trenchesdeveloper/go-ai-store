@@ -16,132 +16,329 @@ import (
 
 // Register is the resolver for the register field.
 func (r *mutationResolver) Register(ctx context.Context, input dto.RegisterRequest) (*dto.AuthResponse, error) {
-	panic(fmt.Errorf("not implemented: Register - register"))
+	result, err := r.AuthService.Register(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("failed to register: %w", err)
+	}
+	return &result, nil
 }
 
 // Login is the resolver for the login field.
 func (r *mutationResolver) Login(ctx context.Context, input dto.LoginRequest) (*dto.AuthResponse, error) {
-	panic(fmt.Errorf("not implemented: Login - login"))
+	result, err := r.AuthService.Login(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("failed to login: %w", err)
+	}
+	return &result, nil
 }
 
 // RefreshToken is the resolver for the refreshToken field.
 func (r *mutationResolver) RefreshToken(ctx context.Context, input model.RefreshTokenInput) (*dto.AuthResponse, error) {
-	panic(fmt.Errorf("not implemented: RefreshToken - refreshToken"))
+	req := dto.RefreshTokenRequest{
+		RefreshToken: input.RefreshToken,
+	}
+	result, err := r.AuthService.RefreshToken(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to refresh token: %w", err)
+	}
+	return &result, nil
 }
 
 // Logout is the resolver for the logout field.
 func (r *mutationResolver) Logout(ctx context.Context, refreshToken string) (bool, error) {
-	panic(fmt.Errorf("not implemented: Logout - logout"))
+	err := r.AuthService.Logout(ctx, refreshToken)
+	if err != nil {
+		return false, fmt.Errorf("failed to logout: %w", err)
+	}
+	return true, nil
 }
 
 // UpdateProfile is the resolver for the updateProfile field.
 func (r *mutationResolver) UpdateProfile(ctx context.Context, input dto.UpdateProfileRequest) (*dto.UserResponse, error) {
-	panic(fmt.Errorf("not implemented: UpdateProfile - updateProfile"))
+	user, err := graph.RequireAuth(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update profile: %w", err)
+	}
+	result, err := r.UserService.UpdateProfile(ctx, user.ID, input)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update profile: %w", err)
+	}
+	return result, nil
 }
 
 // CreateProduct is the resolver for the createProduct field.
 func (r *mutationResolver) CreateProduct(ctx context.Context, input dto.CreateProductRequest) (*dto.ProductResponse, error) {
-	panic(fmt.Errorf("not implemented: CreateProduct - createProduct"))
+	_, err := graph.RequireAdmin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create product: %w", err)
+	}
+	return r.ProductService.CreateProduct(ctx, input)
 }
 
 // UpdateProduct is the resolver for the updateProduct field.
 func (r *mutationResolver) UpdateProduct(ctx context.Context, id uint, input dto.UpdateProductRequest) (*dto.ProductResponse, error) {
-	panic(fmt.Errorf("not implemented: UpdateProduct - updateProduct"))
+	_, err := graph.RequireAdmin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update product: %w", err)
+	}
+	return r.ProductService.UpdateProductByID(ctx, id, &input)
 }
 
 // DeleteProduct is the resolver for the deleteProduct field.
 func (r *mutationResolver) DeleteProduct(ctx context.Context, id uint) (bool, error) {
-	panic(fmt.Errorf("not implemented: DeleteProduct - deleteProduct"))
+	_, err := graph.RequireAdmin(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to delete product: %w", err)
+	}
+	err = r.ProductService.DeleteProductByID(ctx, id)
+	if err != nil {
+		return false, fmt.Errorf("failed to delete product: %w", err)
+	}
+	return true, nil
 }
 
 // CreateCategory is the resolver for the createCategory field.
 func (r *mutationResolver) CreateCategory(ctx context.Context, input dto.CreateCategoryRequest) (*dto.CategoryResponse, error) {
-	panic(fmt.Errorf("not implemented: CreateCategory - createCategory"))
+	_, err := graph.RequireAdmin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create category: %w", err)
+	}
+	return r.ProductService.CreateCategory(ctx, input)
 }
 
 // UpdateCategory is the resolver for the updateCategory field.
 func (r *mutationResolver) UpdateCategory(ctx context.Context, id string, input dto.UpdateCategoryRequest) (*dto.CategoryResponse, error) {
-	panic(fmt.Errorf("not implemented: UpdateCategory - updateCategory"))
+	_, err := graph.RequireAdmin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update category: %w", err)
+	}
+	return r.ProductService.UpdateCategory(ctx, input)
 }
 
 // DeleteCategory is the resolver for the deleteCategory field.
 func (r *mutationResolver) DeleteCategory(ctx context.Context, id string) (bool, error) {
-	panic(fmt.Errorf("not implemented: DeleteCategory - deleteCategory"))
+	_, err := graph.RequireAdmin(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to delete category: %w", err)
+	}
+	// Parse ID string to uint
+	var categoryID uint
+	if _, err := fmt.Sscanf(id, "%d", &categoryID); err != nil {
+		return false, fmt.Errorf("invalid category ID")
+	}
+	err = r.ProductService.DeleteCategory(ctx, categoryID)
+	if err != nil {
+		return false, fmt.Errorf("failed to delete category: %w", err)
+	}
+	return true, nil
 }
 
 // AddToCart is the resolver for the addToCart field.
 func (r *mutationResolver) AddToCart(ctx context.Context, input dto.AddToCartRequest) (*dto.CartResponse, error) {
-	panic(fmt.Errorf("not implemented: AddToCart - addToCart"))
+	user, err := graph.RequireAuth(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add to cart: %w", err)
+	}
+	return r.CartService.AddToCart(ctx, int32(user.ID), input)
 }
 
 // UpdateCartItem is the resolver for the updateCartItem field.
 func (r *mutationResolver) UpdateCartItem(ctx context.Context, itemID uint, input dto.UpdateCartItemRequest) (*dto.CartResponse, error) {
-	panic(fmt.Errorf("not implemented: UpdateCartItem - updateCartItem"))
+	user, err := graph.RequireAuth(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update cart item: %w", err)
+	}
+	return r.CartService.UpdateCartItem(ctx, int32(user.ID), int32(itemID), input)
 }
 
 // RemoveCartItem is the resolver for the removeCartItem field.
 func (r *mutationResolver) RemoveCartItem(ctx context.Context, itemID uint) (*dto.CartResponse, error) {
-	panic(fmt.Errorf("not implemented: RemoveCartItem - removeCartItem"))
+	user, err := graph.RequireAuth(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to remove cart item: %w", err)
+	}
+	return r.CartService.RemoveCartItem(ctx, int32(user.ID), int32(itemID))
 }
 
 // ClearCart is the resolver for the clearCart field.
 func (r *mutationResolver) ClearCart(ctx context.Context) (*dto.CartResponse, error) {
-	panic(fmt.Errorf("not implemented: ClearCart - clearCart"))
+	user, err := graph.RequireAuth(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to clear cart: %w", err)
+	}
+	err = r.CartService.ClearCart(ctx, int32(user.ID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to clear cart: %w", err)
+	}
+	// Return empty cart
+	return r.CartService.GetCart(ctx, int32(user.ID))
 }
 
 // CreateOrder is the resolver for the createOrder field.
 func (r *mutationResolver) CreateOrder(ctx context.Context, input model.CreateOrderInput) (*dto.OrderResponse, error) {
-	panic(fmt.Errorf("not implemented: CreateOrder - createOrder"))
+	user, err := graph.RequireAuth(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create order: %w", err)
+	}
+	// Use idempotency key if provided
+	if input.IdempotencyKey != nil && *input.IdempotencyKey != "" {
+		return r.OrderService.CreateOrderWithIdempotency(ctx, int32(user.ID), *input.IdempotencyKey)
+	}
+	return r.OrderService.CreateOrderFromCart(ctx, int32(user.ID))
 }
 
 // CancelOrder is the resolver for the cancelOrder field.
 func (r *mutationResolver) CancelOrder(ctx context.Context, id uint) (*dto.OrderResponse, error) {
-	panic(fmt.Errorf("not implemented: CancelOrder - cancelOrder"))
+	user, err := graph.RequireAuth(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to cancel order: %w", err)
+	}
+	return r.OrderService.CancelOrder(ctx, int32(user.ID), int32(id))
 }
 
 // UpdateOrderStatus is the resolver for the updateOrderStatus field.
 func (r *mutationResolver) UpdateOrderStatus(ctx context.Context, id uint, input model.UpdateOrderStatusInput) (*dto.OrderResponse, error) {
-	panic(fmt.Errorf("not implemented: UpdateOrderStatus - updateOrderStatus"))
+	_, err := graph.RequireAdmin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update order status: %w", err)
+	}
+	return r.OrderService.UpdateOrderStatus(ctx, int32(id), string(input.Status))
 }
 
 // Me is the resolver for the me field.
 func (r *queryResolver) Me(ctx context.Context) (*dto.UserResponse, error) {
-	panic(fmt.Errorf("not implemented: Me - me"))
+	user, err := graph.RequireAuth(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result, err := r.UserService.GetProfile(ctx, user.ID)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // Products is the resolver for the products field.
 func (r *queryResolver) Products(ctx context.Context, page *int32, limit *int32) (*model.ProductConnection, error) {
-	panic(fmt.Errorf("not implemented: Products - products"))
+	// Set defaults
+	pageNum := 1
+	limitNum := 10
+	if page != nil {
+		pageNum = int(*page)
+	}
+	if limit != nil {
+		limitNum = int(*limit)
+	}
+
+	products, meta, err := r.ProductService.GetProducts(ctx, pageNum, limitNum)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get products: %w", err)
+	}
+
+	// Convert to edges
+	edges := make([]*model.ProductEdge, len(products))
+	for i := range products {
+		edges[i] = &model.ProductEdge{
+			Node: &products[i],
+		}
+	}
+
+	return &model.ProductConnection{
+		Edges: edges,
+		PageInfo: &model.PageInfo{
+			Page:       int32(meta.Page),
+			Limit:      int32(meta.Limit),
+			Total:      int32(meta.TotalCount),
+			TotalPages: int32(meta.TotalPages),
+		},
+	}, nil
 }
 
 // Product is the resolver for the product field.
 func (r *queryResolver) Product(ctx context.Context, id uint) (*dto.ProductResponse, error) {
-	panic(fmt.Errorf("not implemented: Product - product"))
+	return r.ProductService.GetProductByID(ctx, id)
 }
 
 // Categories is the resolver for the categories field.
 func (r *queryResolver) Categories(ctx context.Context) ([]*dto.CategoryResponse, error) {
-	panic(fmt.Errorf("not implemented: Categories - categories"))
+	categories, err := r.ProductService.GetCategories(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// Convert []CategoryResponse to []*CategoryResponse
+	result := make([]*dto.CategoryResponse, len(categories))
+	for i := range categories {
+		result[i] = &categories[i]
+	}
+	return result, nil
 }
 
 // Category is the resolver for the category field.
 func (r *queryResolver) Category(ctx context.Context, id string) (*dto.CategoryResponse, error) {
-	panic(fmt.Errorf("not implemented: Category - category"))
+	var categoryID uint
+	if _, err := fmt.Sscanf(id, "%d", &categoryID); err != nil {
+		return nil, fmt.Errorf("invalid category ID")
+	}
+	return r.ProductService.GetCategoryByID(ctx, categoryID)
 }
 
 // Cart is the resolver for the cart field.
 func (r *queryResolver) Cart(ctx context.Context) (*dto.CartResponse, error) {
-	panic(fmt.Errorf("not implemented: Cart - cart"))
+	user, err := graph.RequireAuth(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get cart: %w", err)
+	}
+	return r.CartService.GetCart(ctx, int32(user.ID))
 }
 
 // Orders is the resolver for the orders field.
 func (r *queryResolver) Orders(ctx context.Context, page *int32, limit *int32) (*model.OrderConnection, error) {
-	panic(fmt.Errorf("not implemented: Orders - orders"))
+	user, err := graph.RequireAuth(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get orders: %w", err)
+	}
+	// Set defaults
+	pageNum := 1
+	limitNum := 10
+	if page != nil {
+		pageNum = int(*page)
+	}
+	if limit != nil {
+		limitNum = int(*limit)
+	}
+
+	orders, meta, err := r.OrderService.GetUserOrders(ctx, int32(user.ID), pageNum, limitNum)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get orders: %w", err)
+	}
+
+	// Convert to edges
+	edges := make([]*model.OrderEdge, len(orders))
+	for i := range orders {
+		edges[i] = &model.OrderEdge{
+			Node: &orders[i],
+		}
+	}
+
+	return &model.OrderConnection{
+		Edges: edges,
+		PageInfo: &model.PageInfo{
+			Page:       int32(meta.Page),
+			Limit:      int32(meta.Limit),
+			Total:      int32(meta.TotalCount),
+			TotalPages: int32(meta.TotalPages),
+		},
+	}, nil
 }
 
 // Order is the resolver for the order field.
 func (r *queryResolver) Order(ctx context.Context, id uint) (*dto.OrderResponse, error) {
-	panic(fmt.Errorf("not implemented: Order - order"))
+	user, err := graph.RequireAuth(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get order: %w", err)
+	}
+	isAdmin := user.Role == "admin"
+	return r.OrderService.GetOrderByID(ctx, int32(user.ID), int32(id), isAdmin)
 }
 
 // Mutation returns graph.MutationResolver implementation.
