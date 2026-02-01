@@ -7,44 +7,21 @@ package graph
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/trenchesdeveloper/go-ai-store/graph"
 	"github.com/trenchesdeveloper/go-ai-store/internal/dto"
 )
 
-// ID is the resolver for the id field.
-func (r *cartItemResolver) ID(ctx context.Context, obj *dto.CartItemResponse) (uint, error) {
-	return obj.ID, nil
-}
-
 // Quantity is the resolver for the quantity field.
 func (r *cartItemResolver) Quantity(ctx context.Context, obj *dto.CartItemResponse) (int32, error) {
 	return int32(obj.Quantity), nil
 }
 
-// ID is the resolver for the id field.
-func (r *orderResolver) ID(ctx context.Context, obj *dto.OrderResponse) (uint, error) {
-	return obj.ID, nil
-}
-
-// UserID is the resolver for the userId field.
-func (r *orderResolver) UserID(ctx context.Context, obj *dto.OrderResponse) (uint, error) {
-	return obj.UserID, nil
-}
-
-// CreatedAt is the resolver for the createdAt field.
-func (r *orderResolver) CreatedAt(ctx context.Context, obj *dto.OrderResponse) (*time.Time, error) {
-	t, err := time.Parse(time.RFC3339, obj.CreatedAt)
-	if err != nil {
-		return nil, err
-	}
-	return &t, nil
-}
-
-// ID is the resolver for the id field.
-func (r *orderItemResolver) ID(ctx context.Context, obj *dto.OrderItemResponse) (uint, error) {
-	return obj.ID, nil
+// UpdatedAt is the resolver for the updatedAt field.
+func (r *cartItemResolver) UpdatedAt(ctx context.Context, obj *dto.CartItemResponse) (*time.Time, error) {
+	panic(fmt.Errorf("not implemented: UpdatedAt - updatedAt"))
 }
 
 // Quantity is the resolver for the quantity field.
@@ -52,41 +29,18 @@ func (r *orderItemResolver) Quantity(ctx context.Context, obj *dto.OrderItemResp
 	return int32(obj.Quantity), nil
 }
 
-// ID is the resolver for the id field.
-func (r *productResolver) ID(ctx context.Context, obj *dto.ProductResponse) (uint, error) {
-	return obj.ID, nil
-}
-
-// CategoryID is the resolver for the categoryId field.
-func (r *productResolver) CategoryID(ctx context.Context, obj *dto.ProductResponse) (uint, error) {
-	return obj.CategoryID, nil
-}
-
 // Stock is the resolver for the stock field.
 func (r *productResolver) Stock(ctx context.Context, obj *dto.ProductResponse) (int32, error) {
 	return int32(obj.Stock), nil
 }
 
-// ID is the resolver for the id field.
-func (r *productImageResolver) ID(ctx context.Context, obj *dto.ProductImageResponse) (uint, error) {
-	return obj.ID, nil
-}
-
-// ID is the resolver for the id field.
-func (r *cartResolver) ID(ctx context.Context, obj *dto.CartResponse) (uint, error) {
-	return obj.ID, nil
-}
-
-// UserID is the resolver for the userId field.
-func (r *cartResolver) UserID(ctx context.Context, obj *dto.CartResponse) (uint, error) {
-	return obj.UserID, nil
+// CreatedAt is the resolver for the createdAt field.
+func (r *productImageResolver) CreatedAt(ctx context.Context, obj *dto.ProductImageResponse) (*time.Time, error) {
+	panic(fmt.Errorf("not implemented: CreatedAt - createdAt"))
 }
 
 // CartItem returns graph.CartItemResolver implementation.
 func (r *Resolver) CartItem() graph.CartItemResolver { return &cartItemResolver{r} }
-
-// Order returns graph.OrderResolver implementation.
-func (r *Resolver) Order() graph.OrderResolver { return &orderResolver{r} }
 
 // OrderItem returns graph.OrderItemResolver implementation.
 func (r *Resolver) OrderItem() graph.OrderItemResolver { return &orderItemResolver{r} }
@@ -94,9 +48,66 @@ func (r *Resolver) OrderItem() graph.OrderItemResolver { return &orderItemResolv
 // Product returns graph.ProductResolver implementation.
 func (r *Resolver) Product() graph.ProductResolver { return &productResolver{r} }
 
+// ProductImage returns graph.ProductImageResolver implementation.
+func (r *Resolver) ProductImage() graph.ProductImageResolver { return &productImageResolver{r} }
+
 type cartItemResolver struct{ *Resolver }
-type orderResolver struct{ *Resolver }
 type orderItemResolver struct{ *Resolver }
 type productResolver struct{ *Resolver }
 type productImageResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+/*
+	func (r *cartResolver) CreatedAt(ctx context.Context, obj *dto.CartResponse) (*time.Time, error) {
+	return &obj.CreatedAt, nil
+}
+func (r *cartResolver) UpdatedAt(ctx context.Context, obj *dto.CartResponse) (*time.Time, error) {
+	return &obj.UpdatedAt, nil
+}
+func (r *cartItemResolver) CreatedAt(ctx context.Context, obj *dto.CartItemResponse) (*time.Time, error) {
+	return &obj.CreatedAt, nil
+}
+func (r *categoryResolver) CreatedAt(ctx context.Context, obj *dto.CategoryResponse) (*time.Time, error) {
+	return &obj.CreatedAt, nil
+}
+func (r *categoryResolver) UpdatedAt(ctx context.Context, obj *dto.CategoryResponse) (*time.Time, error) {
+	return &obj.UpdatedAt, nil
+}
+func (r *orderResolver) CreatedAt(ctx context.Context, obj *dto.OrderResponse) (*time.Time, error) {
+	return &obj.CreatedAt, nil
+}
+func (r *orderResolver) UpdatedAt(ctx context.Context, obj *dto.OrderResponse) (*time.Time, error) {
+	return &obj.UpdatedAt, nil
+}
+func (r *orderItemResolver) CreatedAt(ctx context.Context, obj *dto.OrderItemResponse) (*time.Time, error) {
+	return &obj.CreatedAt, nil
+}
+func (r *productResolver) CreatedAt(ctx context.Context, obj *dto.ProductResponse) (*time.Time, error) {
+	return &obj.CreatedAt, nil
+}
+func (r *productResolver) UpdatedAt(ctx context.Context, obj *dto.ProductResponse) (*time.Time, error) {
+	return &obj.UpdatedAt, nil
+}
+func (r *productImageResolver) UpdatedAt(ctx context.Context, obj *dto.ProductImageResponse) (*time.Time, error) {
+	return &obj.UpdatedAt, nil
+}
+func (r *userResolver) CreatedAt(ctx context.Context, obj *dto.UserResponse) (*time.Time, error) {
+	return &obj.CreatedAt, nil
+}
+func (r *userResolver) UpdatedAt(ctx context.Context, obj *dto.UserResponse) (*time.Time, error) {
+	return &obj.UpdatedAt, nil
+}
+func (r *Resolver) Cart() graph.CartResolver { return &cartResolver{r} }
+func (r *Resolver) Category() graph.CategoryResolver { return &categoryResolver{r} }
+func (r *Resolver) Order() graph.OrderResolver { return &orderResolver{r} }
+func (r *Resolver) User() graph.UserResolver { return &userResolver{r} }
 type cartResolver struct{ *Resolver }
+type categoryResolver struct{ *Resolver }
+type orderResolver struct{ *Resolver }
+type userResolver struct{ *Resolver }
+*/

@@ -34,6 +34,8 @@ func (s *UserService) GetProfile(ctx context.Context, userID uint) (*dto.UserRes
 		Phone:     user.Phone.String,
 		Role:      string(user.Role.UserRole),
 		IsActive:  user.IsActive.Bool,
+		CreatedAt: user.CreatedAt.Time,
+		UpdatedAt: user.UpdatedAt.Time,
 	}, nil
 }
 
@@ -65,5 +67,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uint, req dto.Up
 		Phone:     user.Phone.String,
 		Role:      string(user.Role.UserRole),
 		IsActive:  user.IsActive.Bool,
+		CreatedAt: user.CreatedAt.Time,
+		UpdatedAt: user.UpdatedAt.Time,
 	}, nil
 }

@@ -7,6 +7,8 @@ type User {
   phone: String
   role: String!
   isActive: Boolean!
+  createdAt: Time!
+  updatedAt: Time!
 }
 
 type AuthPayload {
@@ -15,7 +17,6 @@ type AuthPayload {
   refreshToken: String!
 }
 
-# Product Types
 type Product {
   id: Uint!
   name: String!
@@ -27,6 +28,8 @@ type Product {
   isActive: Boolean!
   category: Category!
   images: [ProductImage!]!
+  createdAt: Time!
+  updatedAt: Time!
 }
 
 type Category {
@@ -34,6 +37,8 @@ type Category {
   name: String!
   description: String!
   isActive: Boolean!
+  createdAt: Time!
+  updatedAt: Time!
 }
 
 type ProductImage {
@@ -41,6 +46,7 @@ type ProductImage {
   url: String!
   altText: String!
   isPrimary: Boolean!
+  createdAt: Time!
 }
 
 # Product Connection (Relay-style pagination)
@@ -59,6 +65,8 @@ type Cart {
   userId: Uint!
   cartItems: [CartItem!]!
   total: Float!
+  createdAt: Time!
+  updatedAt: Time!
 }
 
 type CartItem {
@@ -66,6 +74,8 @@ type CartItem {
   product: Product!
   quantity: Int!
   subtotal: Float!
+  createdAt: Time!
+  updatedAt: Time!
 }
 
 # Order Types
@@ -76,6 +86,7 @@ type Order {
   totalAmount: Float!
   orderItems: [OrderItem!]!
   createdAt: Time!
+  updatedAt: Time!
 }
 
 type OrderItem {
@@ -83,6 +94,7 @@ type OrderItem {
   product: Product!
   quantity: Int!
   price: Float!
+  createdAt: Time!
 }
 
 # Order Connection (Relay-style pagination)

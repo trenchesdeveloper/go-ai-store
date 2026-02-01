@@ -97,6 +97,9 @@ func (s *Server) SetupRoutes() *gin.Engine {
 	router.POST("/graphql", func(c *gin.Context) {
 		graphqlHandler.ServeHTTP(c.Writer, c.Request)
 	})
+	router.GET("/graphql", func(c *gin.Context) {
+		graphqlHandler.ServeHTTP(c.Writer, c.Request)
+	})
 	// GraphQL playground (development only)
 	router.GET("/playground", func(c *gin.Context) {
 		playground.Handler("GraphQL Playground", "/graphql").ServeHTTP(c.Writer, c.Request)

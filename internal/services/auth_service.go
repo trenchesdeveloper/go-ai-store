@@ -180,6 +180,8 @@ func (s *AuthService) generateAuthResponse(ctx context.Context, user *db.User) (
 			Phone:     user.Phone.String,
 			Role:      string(user.Role.UserRole),
 			IsActive:  user.IsActive.Bool,
+			CreatedAt: user.CreatedAt.Time,
+			UpdatedAt: user.UpdatedAt.Time,
 		},
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
