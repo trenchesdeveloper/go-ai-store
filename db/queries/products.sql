@@ -74,3 +74,26 @@ FOR UPDATE;
 SELECT * FROM products
 WHERE id = ANY($1::int[]) AND deleted_at IS NULL
 FOR UPDATE;
+
+-- name: SearchProducts :many
+SELECT
+  *,
+  ts_rank(search_vector, plainto_tsquery('english', $1)) as rank
+FROM products
+WHERE search_vector @@ plainto_tsquery('english', $1)
+  AND is_active = true
+  AND deleted_at IS NULL
+  AND (sqlc.narg('category_id')::int IS NULL OR category_id = sqlc.narg('category_id')::int)
+  AND (sqlc.narg('min_price')::numeric IS NULL OR price >= sqlc.narg('min_price')::numeric)
+  AND (sqlc.narg('max_price')::numeric IS NULL OR price <= sqlc.narg('max_price')::numeric)
+ORDER BY rank DESC
+LIMIT $2 OFFSET $3;
+
+-- name: CountSearchProducts :one
+SELECT COUNT(*) FROM products
+WHERE search_vector @@ plainto_tsquery('english', $1)
+  AND is_active = true
+  AND deleted_at IS NULL
+  AND (sqlc.narg('category_id')::int IS NULL OR category_id = sqlc.narg('category_id')::int)
+  AND (sqlc.narg('min_price')::numeric IS NULL OR price >= sqlc.narg('min_price')::numeric)
+  AND (sqlc.narg('max_price')::numeric IS NULL OR price <= sqlc.narg('max_price')::numeric);

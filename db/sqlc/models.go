@@ -166,6 +166,8 @@ type Product struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
+	// Full-text search vector combining name (weight A), sku (weight A), and description (weight B)
+	SearchVector interface{} `json:"search_vector"`
 }
 
 type ProductImage struct {

@@ -277,6 +277,159 @@ func (s *ProductService) GetProducts(ctx context.Context, page, limit int) ([]dt
 	return productResponses, paginationMeta, nil
 }
 
+// SearchProducts performs full-text search on products by name, sku, and description
+func (s *ProductService) SearchProducts(ctx context.Context, req dto.SearchProductsRequest) ([]dto.ProductSearchResult, *utils.PaginationMeta, error) {
+	if req.Query == "" {
+		return []dto.ProductSearchResult{}, &utils.PaginationMeta{Page: req.Page, Limit: req.Limit}, nil
+	}
+
+	page := req.Page
+	limit := req.Limit
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 10
+	}
+
+	// Build optional filter params
+	var categoryID pgtype.Int4
+	if req.CategoryID != nil {
+		categoryID = pgtype.Int4{Int32: int32(*req.CategoryID), Valid: true} //#nosec G115 -- category ID is bounded
+	}
+
+	var minPrice, maxPrice pgtype.Numeric
+	if req.MinPrice != nil {
+		_ = minPrice.Scan(*req.MinPrice)
+	}
+	if req.MaxPrice != nil {
+		_ = maxPrice.Scan(*req.MaxPrice)
+	}
+
+	countParams := db.CountSearchProductsParams{
+		PlaintoTsquery: req.Query,
+		CategoryID:     categoryID,
+		MinPrice:       minPrice,
+		MaxPrice:       maxPrice,
+	}
+
+	// Get total count for pagination
+	totalCount, err := s.store.CountSearchProducts(ctx, countParams)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Calculate total pages
+	totalPages := int(totalCount) / limit
+	if int(totalCount)%limit > 0 {
+		totalPages++
+	}
+
+	paginationMeta := &utils.PaginationMeta{
+		Page:       page,
+		Limit:      limit,
+		TotalCount: int(totalCount),
+		TotalPages: totalPages,
+	}
+
+	searchParams := db.SearchProductsParams{
+		PlaintoTsquery: req.Query,
+		Limit:          int32(limit),              //#nosec G115 -- pagination values are bounded
+		Offset:         int32((page - 1) * limit), //#nosec G115 -- pagination values are bounded
+		CategoryID:     categoryID,
+		MinPrice:       minPrice,
+		MaxPrice:       maxPrice,
+	}
+
+	products, err := s.store.SearchProducts(ctx, searchParams)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(products) == 0 {
+		return []dto.ProductSearchResult{}, paginationMeta, nil
+	}
+
+	// Collect unique category IDs and all product IDs
+	categoryIDSet := make(map[int32]struct{})
+	productIDs := make([]int32, len(products))
+	for i, product := range products {
+		categoryIDSet[product.CategoryID] = struct{}{}
+		productIDs[i] = product.ID
+	}
+
+	// Convert category ID set to slice
+	categoryIDs := make([]int32, 0, len(categoryIDSet))
+	for id := range categoryIDSet {
+		categoryIDs = append(categoryIDs, id)
+	}
+
+	// Batch fetch categories
+	categories, err := s.store.GetCategoriesByIDs(ctx, categoryIDs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Create category lookup map
+	categoryMap := make(map[int32]db.Category, len(categories))
+	for _, cat := range categories {
+		categoryMap[cat.ID] = cat
+	}
+
+	// Batch fetch images
+	images, err := s.store.ListProductImagesByProductIDs(ctx, productIDs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Create image lookup map
+	imageMap := make(map[int32][]db.ProductImage)
+	for _, img := range images {
+		imageMap[img.ProductID] = append(imageMap[img.ProductID], img)
+	}
+
+	// Build response with rank
+	productResults := make([]dto.ProductSearchResult, len(products))
+	for i, product := range products {
+		category := categoryMap[product.CategoryID]
+		productImages := imageMap[product.ID]
+
+		imageResponses := make([]dto.ProductImageResponse, len(productImages))
+		for j, img := range productImages {
+			imageResponses[j] = dto.ProductImageResponse{
+				ID:        uint(img.ID), //#nosec G115 -- DB ID is always positive
+				URL:       img.Url,
+				AltText:   img.AltText.String,
+				IsPrimary: img.IsPrimary.Bool,
+			}
+		}
+
+		priceFloat, _ := product.Price.Float64Value()
+		productResults[i] = dto.ProductSearchResult{
+			ProductResponse: dto.ProductResponse{
+				ID:          uint(product.ID), //#nosec G115 -- DB ID is always positive
+				Name:        product.Name,
+				Description: product.Description.String,
+				Price:       priceFloat.Float64,
+				Stock:       int(product.Stock.Int32),
+				CategoryID:  uint(product.CategoryID), //#nosec G115 -- DB ID is always positive
+				SKU:         product.Sku,
+				IsActive:    product.IsActive.Bool,
+				Category: dto.CategoryResponse{
+					ID:          int64(category.ID),
+					Name:        category.Name,
+					Description: category.Description.String,
+					IsActive:    category.IsActive.Bool,
+				},
+				Images: imageResponses,
+			},
+			Rank: product.Rank,
+		}
+	}
+
+	return productResults, paginationMeta, nil
+}
+
 func (s *ProductService) GetProductByID(ctx context.Context, id uint) (*dto.ProductResponse, error) {
 	product, err := s.store.GetProductByID(ctx, int32(id)) //#nosec G115 -- id from validated request
 	if err != nil {

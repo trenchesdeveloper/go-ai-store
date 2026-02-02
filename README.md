@@ -65,6 +65,7 @@ graph TB
 
 - **E-commerce Core**
   - Products with categories and image management
+  - **Full-text search** with PostgreSQL tsvector/GIN index
   - Shopping cart management
   - Order processing with status tracking
   - Timestamp tracking (createdAt/updatedAt) on all entities
@@ -205,11 +206,22 @@ make docker-down
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
 | GET | `/api/v1/products` | List products | - |
+| GET | `/api/v1/products/search` | Full-text search products | - |
 | GET | `/api/v1/products/:id` | Get product | - |
 | POST | `/api/v1/products` | Create product | Admin |
 | PUT | `/api/v1/products/:id` | Update product | Admin |
 | DELETE | `/api/v1/products/:id` | Delete product | Admin |
 | POST | `/api/v1/products/:id/image` | Upload image | Admin |
+
+**Search Query Parameters:**
+| Param | Type | Description |
+|-------|------|-------------|
+| `q` | string | Search query (required) |
+| `page` | int | Page number (default: 1) |
+| `limit` | int | Items per page (default: 10) |
+| `category_id` | int | Filter by category (optional) |
+| `min_price` | float | Minimum price filter (optional) |
+| `max_price` | float | Maximum price filter (optional) |
 
 ### Categories
 

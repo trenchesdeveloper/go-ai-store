@@ -44,10 +44,39 @@ func (q *Queries) CountProductsByCategory(ctx context.Context, categoryID int32)
 	return count, err
 }
 
+const countSearchProducts = `-- name: CountSearchProducts :one
+SELECT COUNT(*) FROM products
+WHERE search_vector @@ plainto_tsquery('english', $1)
+  AND is_active = true
+  AND deleted_at IS NULL
+  AND ($2::int IS NULL OR category_id = $2::int)
+  AND ($3::numeric IS NULL OR price >= $3::numeric)
+  AND ($4::numeric IS NULL OR price <= $4::numeric)
+`
+
+type CountSearchProductsParams struct {
+	PlaintoTsquery string         `json:"plainto_tsquery"`
+	CategoryID     pgtype.Int4    `json:"category_id"`
+	MinPrice       pgtype.Numeric `json:"min_price"`
+	MaxPrice       pgtype.Numeric `json:"max_price"`
+}
+
+func (q *Queries) CountSearchProducts(ctx context.Context, arg CountSearchProductsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countSearchProducts,
+		arg.PlaintoTsquery,
+		arg.CategoryID,
+		arg.MinPrice,
+		arg.MaxPrice,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createProduct = `-- name: CreateProduct :one
 INSERT INTO products (category_id, name, description, price, stock, sku)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at
+RETURNING id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at, search_vector
 `
 
 type CreateProductParams struct {
@@ -81,12 +110,13 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.SearchVector,
 	)
 	return i, err
 }
 
 const getProductByID = `-- name: GetProductByID :one
-SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at FROM products
+SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at, search_vector FROM products
 WHERE id = $1 AND deleted_at IS NULL
 `
 
@@ -105,12 +135,13 @@ func (q *Queries) GetProductByID(ctx context.Context, id int32) (Product, error)
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.SearchVector,
 	)
 	return i, err
 }
 
 const getProductByIDForUpdate = `-- name: GetProductByIDForUpdate :one
-SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at FROM products
+SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at, search_vector FROM products
 WHERE id = $1 AND deleted_at IS NULL
 FOR UPDATE
 `
@@ -130,12 +161,13 @@ func (q *Queries) GetProductByIDForUpdate(ctx context.Context, id int32) (Produc
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.SearchVector,
 	)
 	return i, err
 }
 
 const getProductBySKU = `-- name: GetProductBySKU :one
-SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at FROM products
+SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at, search_vector FROM products
 WHERE sku = $1 AND deleted_at IS NULL
 `
 
@@ -154,12 +186,13 @@ func (q *Queries) GetProductBySKU(ctx context.Context, sku string) (Product, err
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.SearchVector,
 	)
 	return i, err
 }
 
 const getProductsByIDs = `-- name: GetProductsByIDs :many
-SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at FROM products
+SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at, search_vector FROM products
 WHERE id = ANY($1::int[]) AND deleted_at IS NULL
 `
 
@@ -184,6 +217,7 @@ func (q *Queries) GetProductsByIDs(ctx context.Context, dollar_1 []int32) ([]Pro
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.SearchVector,
 		); err != nil {
 			return nil, err
 		}
@@ -196,7 +230,7 @@ func (q *Queries) GetProductsByIDs(ctx context.Context, dollar_1 []int32) ([]Pro
 }
 
 const getProductsByIDsForUpdate = `-- name: GetProductsByIDsForUpdate :many
-SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at FROM products
+SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at, search_vector FROM products
 WHERE id = ANY($1::int[]) AND deleted_at IS NULL
 FOR UPDATE
 `
@@ -222,6 +256,7 @@ func (q *Queries) GetProductsByIDsForUpdate(ctx context.Context, dollar_1 []int3
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.SearchVector,
 		); err != nil {
 			return nil, err
 		}
@@ -234,7 +269,7 @@ func (q *Queries) GetProductsByIDsForUpdate(ctx context.Context, dollar_1 []int3
 }
 
 const listActiveProducts = `-- name: ListActiveProducts :many
-SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at FROM products
+SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at, search_vector FROM products
 WHERE is_active = true AND deleted_at IS NULL
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
@@ -266,6 +301,7 @@ func (q *Queries) ListActiveProducts(ctx context.Context, arg ListActiveProducts
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.SearchVector,
 		); err != nil {
 			return nil, err
 		}
@@ -278,7 +314,7 @@ func (q *Queries) ListActiveProducts(ctx context.Context, arg ListActiveProducts
 }
 
 const listProducts = `-- name: ListProducts :many
-SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at FROM products
+SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at, search_vector FROM products
 WHERE deleted_at IS NULL
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
@@ -310,6 +346,7 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]P
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.SearchVector,
 		); err != nil {
 			return nil, err
 		}
@@ -322,7 +359,7 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]P
 }
 
 const listProductsByCategory = `-- name: ListProductsByCategory :many
-SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at FROM products
+SELECT id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at, search_vector FROM products
 WHERE category_id = $1 AND deleted_at IS NULL
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
@@ -355,6 +392,88 @@ func (q *Queries) ListProductsByCategory(ctx context.Context, arg ListProductsBy
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.SearchVector,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchProducts = `-- name: SearchProducts :many
+SELECT
+  id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at, search_vector,
+  ts_rank(search_vector, plainto_tsquery('english', $1)) as rank
+FROM products
+WHERE search_vector @@ plainto_tsquery('english', $1)
+  AND is_active = true
+  AND deleted_at IS NULL
+  AND ($4::int IS NULL OR category_id = $4::int)
+  AND ($5::numeric IS NULL OR price >= $5::numeric)
+  AND ($6::numeric IS NULL OR price <= $6::numeric)
+ORDER BY rank DESC
+LIMIT $2 OFFSET $3
+`
+
+type SearchProductsParams struct {
+	PlaintoTsquery string         `json:"plainto_tsquery"`
+	Limit          int32          `json:"limit"`
+	Offset         int32          `json:"offset"`
+	CategoryID     pgtype.Int4    `json:"category_id"`
+	MinPrice       pgtype.Numeric `json:"min_price"`
+	MaxPrice       pgtype.Numeric `json:"max_price"`
+}
+
+type SearchProductsRow struct {
+	ID           int32              `json:"id"`
+	CategoryID   int32              `json:"category_id"`
+	Name         string             `json:"name"`
+	Description  pgtype.Text        `json:"description"`
+	Price        pgtype.Numeric     `json:"price"`
+	Stock        pgtype.Int4        `json:"stock"`
+	Sku          string             `json:"sku"`
+	IsActive     pgtype.Bool        `json:"is_active"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt    pgtype.Timestamptz `json:"deleted_at"`
+	SearchVector interface{}        `json:"search_vector"`
+	Rank         float32            `json:"rank"`
+}
+
+func (q *Queries) SearchProducts(ctx context.Context, arg SearchProductsParams) ([]SearchProductsRow, error) {
+	rows, err := q.db.Query(ctx, searchProducts,
+		arg.PlaintoTsquery,
+		arg.Limit,
+		arg.Offset,
+		arg.CategoryID,
+		arg.MinPrice,
+		arg.MaxPrice,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SearchProductsRow{}
+	for rows.Next() {
+		var i SearchProductsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CategoryID,
+			&i.Name,
+			&i.Description,
+			&i.Price,
+			&i.Stock,
+			&i.Sku,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.SearchVector,
+			&i.Rank,
 		); err != nil {
 			return nil, err
 		}
@@ -381,7 +500,7 @@ const updateProduct = `-- name: UpdateProduct :one
 UPDATE products
 SET category_id = $2, name = $3, description = $4, price = $5, stock = $6, sku = $7, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at
+RETURNING id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at, search_vector
 `
 
 type UpdateProductParams struct {
@@ -417,6 +536,7 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (P
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.SearchVector,
 	)
 	return i, err
 }
@@ -425,7 +545,7 @@ const updateProductStatus = `-- name: UpdateProductStatus :one
 UPDATE products
 SET is_active = $2, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at
+RETURNING id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at, search_vector
 `
 
 type UpdateProductStatusParams struct {
@@ -448,6 +568,7 @@ func (q *Queries) UpdateProductStatus(ctx context.Context, arg UpdateProductStat
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.SearchVector,
 	)
 	return i, err
 }
@@ -456,7 +577,7 @@ const updateProductStock = `-- name: UpdateProductStock :one
 UPDATE products
 SET stock = $2, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at
+RETURNING id, category_id, name, description, price, stock, sku, is_active, created_at, updated_at, deleted_at, search_vector
 `
 
 type UpdateProductStockParams struct {
@@ -479,6 +600,7 @@ func (q *Queries) UpdateProductStock(ctx context.Context, arg UpdateProductStock
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.SearchVector,
 	)
 	return i, err
 }

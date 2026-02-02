@@ -20,6 +20,7 @@ type Querier interface {
 	CountOrdersByUserID(ctx context.Context, userID int32) (int64, error)
 	CountProducts(ctx context.Context) (int64, error)
 	CountProductsByCategory(ctx context.Context, categoryID int32) (int64, error)
+	CountSearchProducts(ctx context.Context, arg CountSearchProductsParams) (int64, error)
 	CountUsers(ctx context.Context) (int64, error)
 	CreateCart(ctx context.Context, userID int32) (Cart, error)
 	CreateCartItem(ctx context.Context, arg CreateCartItemParams) (CartItem, error)
@@ -69,6 +70,7 @@ type Querier interface {
 	ListProductsByCategory(ctx context.Context, arg ListProductsByCategoryParams) ([]Product, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	RestoreCartItem(ctx context.Context, arg RestoreCartItemParams) (CartItem, error)
+	SearchProducts(ctx context.Context, arg SearchProductsParams) ([]SearchProductsRow, error)
 	SetPrimaryProductImage(ctx context.Context, arg SetPrimaryProductImageParams) error
 	SoftDeleteCart(ctx context.Context, id int32) error
 	SoftDeleteCartByUserID(ctx context.Context, userID int32) error

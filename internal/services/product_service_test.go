@@ -1012,3 +1012,9 @@ func (s *productStoreWrapper) GetIdempotencyKey(ctx context.Context, arg db.GetI
 func (s *productStoreWrapper) UpdateIdempotencyKeyOrderID(ctx context.Context, arg db.UpdateIdempotencyKeyOrderIDParams) error {
 	return nil
 }
+func (s *productStoreWrapper) SearchProducts(ctx context.Context, arg db.SearchProductsParams) ([]db.SearchProductsRow, error) {
+	return nil, nil
+}
+func (s *productStoreWrapper) CountSearchProducts(ctx context.Context, arg db.CountSearchProductsParams) (int64, error) {
+	return 0, nil
+}

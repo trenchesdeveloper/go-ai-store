@@ -30,6 +30,7 @@ type ProductServicer interface {
 	DeleteCategory(ctx context.Context, id uint) error
 	CreateProduct(ctx context.Context, req dto.CreateProductRequest) (*dto.ProductResponse, error)
 	GetProducts(ctx context.Context, page, limit int) ([]dto.ProductResponse, *utils.PaginationMeta, error)
+	SearchProducts(ctx context.Context, req dto.SearchProductsRequest) ([]dto.ProductSearchResult, *utils.PaginationMeta, error)
 	GetProductByID(ctx context.Context, id uint) (*dto.ProductResponse, error)
 	UpdateProductByID(ctx context.Context, id uint, req *dto.UpdateProductRequest) (*dto.ProductResponse, error)
 	DeleteProductByID(ctx context.Context, id uint) error
