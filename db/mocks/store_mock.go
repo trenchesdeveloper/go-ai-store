@@ -313,6 +313,16 @@ func (m *MockStore) CountProductsByCategory(ctx context.Context, categoryID int3
 	return args.Get(0).(int64), args.Error(1)
 }
 
+func (m *MockStore) SearchProducts(ctx context.Context, arg db.SearchProductsParams) ([]db.SearchProductsRow, error) {
+	args := m.Called(ctx, arg)
+	return args.Get(0).([]db.SearchProductsRow), args.Error(1)
+}
+
+func (m *MockStore) CountSearchProducts(ctx context.Context, arg db.CountSearchProductsParams) (int64, error) {
+	args := m.Called(ctx, arg)
+	return args.Get(0).(int64), args.Error(1)
+}
+
 // Product Image methods
 func (m *MockStore) CreateProductImage(ctx context.Context, arg db.CreateProductImageParams) (db.ProductImage, error) {
 	args := m.Called(ctx, arg)

@@ -186,6 +186,38 @@ func (s *Server) GetProducts(ctx *gin.Context) {
 	utils.PaginatedSuccessResponse(ctx, "Products retrieved successfully", products, *paginationMeta)
 }
 
+// SearchProducts godoc
+// @Summary      Search products
+// @Description  Full-text search products by name, SKU, and description with optional filters
+// @Tags         products
+// @Accept       json
+// @Produce      json
+// @Param        q query string true "Search query"
+// @Param        page query int false "Page number" default(1)
+// @Param        limit query int false "Items per page" default(10)
+// @Param        category_id query int false "Filter by category ID"
+// @Param        min_price query number false "Minimum price filter"
+// @Param        max_price query number false "Maximum price filter"
+// @Success      200  {object}  utils.PaginatedResponse{data=[]dto.ProductSearchResult}
+// @Failure      400  {object}  utils.Response
+// @Failure      500  {object}  utils.Response
+// @Router       /products/search [get]
+func (s *Server) SearchProducts(ctx *gin.Context) {
+	var req dto.SearchProductsRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		utils.BadRequestResponse(ctx, "Invalid search parameters", err)
+		return
+	}
+
+	products, paginationMeta, err := s.productService.SearchProducts(ctx, req)
+	if err != nil {
+		utils.InternalErrorResponse(ctx, "Failed to search products", err)
+		return
+	}
+
+	utils.PaginatedSuccessResponse(ctx, "Products search completed", products, *paginationMeta)
+}
+
 // GetProductByID godoc
 // @Summary      Get product by ID
 // @Description  Get a single product by ID

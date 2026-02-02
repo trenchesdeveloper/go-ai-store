@@ -63,3 +63,19 @@ type ProductImageResponse struct {
 	IsPrimary bool      `json:"is_primary"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
+
+// SearchProductsRequest defines the request for full-text product search
+type SearchProductsRequest struct {
+	Query      string   `form:"q" binding:"required,min=1"`
+	Page       int      `form:"page"`
+	Limit      int      `form:"limit"`
+	CategoryID *uint    `form:"category_id"`
+	MinPrice   *float64 `form:"min_price"`
+	MaxPrice   *float64 `form:"max_price"`
+}
+
+// ProductSearchResult includes product data with search relevance rank
+type ProductSearchResult struct {
+	ProductResponse
+	Rank float32 `json:"rank"`
+}

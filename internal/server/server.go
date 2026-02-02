@@ -168,6 +168,7 @@ func (s *Server) SetupRoutes() *gin.Engine {
 		{
 			public.GET("/categories", s.GetCategories)
 			public.GET("/products", s.GetProducts)
+			public.GET("/products/search", s.SearchProducts) // Must be before :id
 			public.GET("/products/:id", s.GetProductByID)
 		}
 	}

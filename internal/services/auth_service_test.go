@@ -729,3 +729,9 @@ func (s *authStoreWrapper) GetIdempotencyKey(ctx context.Context, arg db.GetIdem
 func (s *authStoreWrapper) UpdateIdempotencyKeyOrderID(ctx context.Context, arg db.UpdateIdempotencyKeyOrderIDParams) error {
 	return nil
 }
+func (s *authStoreWrapper) SearchProducts(ctx context.Context, arg db.SearchProductsParams) ([]db.SearchProductsRow, error) {
+	return nil, nil
+}
+func (s *authStoreWrapper) CountSearchProducts(ctx context.Context, arg db.CountSearchProductsParams) (int64, error) {
+	return 0, nil
+}

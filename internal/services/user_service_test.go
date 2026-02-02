@@ -444,3 +444,9 @@ func (s *storeWrapper) GetIdempotencyKey(ctx context.Context, arg db.GetIdempote
 func (s *storeWrapper) UpdateIdempotencyKeyOrderID(ctx context.Context, arg db.UpdateIdempotencyKeyOrderIDParams) error {
 	return nil
 }
+func (s *storeWrapper) SearchProducts(ctx context.Context, arg db.SearchProductsParams) ([]db.SearchProductsRow, error) {
+	return nil, nil
+}
+func (s *storeWrapper) CountSearchProducts(ctx context.Context, arg db.CountSearchProductsParams) (int64, error) {
+	return 0, nil
+}
